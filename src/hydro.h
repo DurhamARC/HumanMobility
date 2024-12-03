@@ -84,6 +84,11 @@
 #include "./hydro/AnarchyPU/hydro_iact.h"
 #define SPH_IMPLEMENTATION \
   "ANARCHY (Pressure-Energy) SPH (Dalla Vecchia+ in prep)"
+#elif defined(HUMANMOBILITY_SPH)
+#include "./hydro/HumanMobility/hydro.h"
+#include "./hydro/HumanMobility/hydro_iact.h"
+#define SPH_IMPLEMENTATION \
+  "HUMANMOBILITY SPH"
 #else
 #error "Invalid choice of SPH variant"
 #endif

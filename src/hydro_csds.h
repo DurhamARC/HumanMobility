@@ -53,6 +53,8 @@
 #error TODO
 #elif defined(ANARCHY_PU_SPH)
 #error TODO
+#elif defined(HUMANMOBILITY_SPH)
+#error TODO
 #else
 #error "Invalid choice of SPH variant"
 #endif
