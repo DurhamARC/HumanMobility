@@ -21,6 +21,7 @@
 
 import numpy as np
 import h5py as h5
+import write_gadget as wg
 
 
 class Humans(object):
@@ -54,11 +55,11 @@ class Humans(object):
         """
         Calculates velocities of humans.
         """
-        v_x = np.random.rand(self.nhumans, 1) * 1
-        v_y = np.random.rand(self.nhumans, 1) * 1
-        # v_z = 0
+        v_x = (np.random.rand(self.nhumans)-0.5)*200
+        v_y = (np.random.rand(self.nhumans)-0.5)*200
+        v_z = np.zeros(self.nhumans)
 
-        self.velocities = np.array([v_x, v_y]).T #, v_z
+        self.velocities = np.array([v_x, v_y, v_z]).T
 
         return self.velocities
 
@@ -92,11 +93,13 @@ class Humans(object):
                 handle,
                 boxsize=boxsize,
                 flag_entropy=0,
-                np_total=np.array([self.nparts, 0, 0, 0, 0, 0]),
+                np_total=np.array([self.nhumans, 0, 0, 0, 0, 0]),
                 np_total_hw=np.array([0, 0, 0, 0, 0, 0]),
                 other={
-                    "MassTable": np.array([self.particlemass, 0, 0, 0, 0, 0]),
+                    "MassTable": np.array([self.humanmass, 0, 0, 0, 0, 0]),
                     "Time": 0,
+                    "Dimension": 2,
+                    "Flag_Entropy_ICs": 0,
                 },
             )
 
@@ -137,11 +140,13 @@ def gen_humans_grid(meta):
 
     # These are 2d arrays which isn't actually that helpful.
     x, y = np.meshgrid(x_values, x_values)
-    x = x.flatten() + centre_of_ring[0] - (range[1] - range[0]) / 2
-    y = y.flatten() + centre_of_ring[1] - (range[1] - range[0]) / 2
+    x = x.flatten() + centre_of_ring[0] - (range[1] - range[0]) / 2 + np.random.rand(humans.nhumans) * 0.001
+    y = y.flatten() + centre_of_ring[1] - (range[1] - range[0]) / 2 + np.random.rand(humans.nhumans) * 0.001
+    z = np.zeros(humans.nhumans)
     # z = np.zeros_like(x) + meta["boxsize"] / 2
 
-    humans.positions = np.array([x, y]).T #, z
+    humans.positions = np.array([x, y, z]).T
+    humans.densities = np.ones(humans.nhumans)
     humans.calculate_velocities()
     humans.calculate_masses()
 
@@ -163,7 +168,7 @@ if __name__ == "__main__":
     )
 
     PARSER.add_argument(
-        "-m",
+        "-p",
         "--gravitymass",
         help="""
              GM for the central point mass. Default: 1.
@@ -195,7 +200,7 @@ if __name__ == "__main__":
     )
 
     PARSER.add_argument(
-        "-h",
+        "-m",
         "--humanmass",
         help="""
              Mass of the humans. Default: 1.
@@ -267,7 +272,7 @@ if __name__ == "__main__":
         exit(1)
 
     if ARGS["smoothing"] == -1:
-        smoothing = float(ARGS["boxsize"]) / int(ARGS["nparts"])
+        smoothing = float(ARGS["boxsize"]) / int(ARGS["nhumans"])
     else:
         smoothing = float(ARGS["smoothing"])
 
@@ -284,101 +289,100 @@ if __name__ == "__main__":
 
     HUMANS.save_to_gadget(filename=ARGS["filename"], boxsize=ARGS["boxsize"])
 
+    print("Initial condition generated")
 
 
 #################################################
 
-# Generates a SWIFT IC file with ...
+# # Generates a SWIFT IC file with ...
 
-# Parameters
-periodic = 0  # 1 For periodic box
-boxSize = 10  # 1 km
-rho = 200  # Population density in code units ?
-T = 1  # Initial intensity of human motion (how many people are moving in a box or percentage?)
-gamma = 5.0 / 3.0  # Gas adiabatic index
-fileName = "mobilityBox.hdf5"
-# ---------------------------------------------------
+# # Parameters
+# periodic = 0  # 1 For periodic box
+# boxSize = 10  # 1 km
+# rho = 200  # Population density in code units ?
+# T = 1  # Initial intensity of human motion (how many people are moving in a box or percentage?)
+# gamma = 5.0 / 3.0  # Gas adiabatic index
+# fileName = "mobilityBox.hdf5"
+# # ---------------------------------------------------
 
-# defines some constants
-# need to be changed in plotTemperature.py too
-h_frac = 0.76
-mu = 4.0 / (1.0 + 3.0 * h_frac)
+# # defines some constants
+# # need to be changed in plotTemperature.py too
+# h_frac = 0.76
+# mu = 4.0 / (1.0 + 3.0 * h_frac)
 
-m_h_cgs = 1.67e-24
-k_b_cgs = 1.38e-16
+# m_h_cgs = 1.67e-24
+# k_b_cgs = 1.38e-16
 
-# defines units
-unit_length = 1  # 1m
-unit_mass = 1  # a unit mass of 1 particle-human
-unit_time = 1  # 1 s ?
+# # defines units
+# unit_length = 1  # 1m
+# unit_mass = 1  # a unit mass of 1 particle-human
+# unit_time = 1  # 1 s ?
 
-# Read id, position and h from glass
-glass = h5.File("humans.hdf5", "r")
-ids = glass["/PartType0/ParticleIDs"][:]
-pos = glass["/PartType0/Coordinates"][:, :] * boxSize
-h = glass["/PartType0/SmoothingLength"][:] * boxSize
+# # Read id, position and h from glass
+# glass = h5.File("humans.hdf5", "r")
+# ids = glass["/PartType0/ParticleIDs"][:]
+# pos = glass["/PartType0/Coordinates"][:, :] * boxSize
+# h = glass["/PartType0/SmoothingLength"][:] * boxSize
 
-# Compute basic properties
+# # Compute basic properties
 
-# need to define `pos`
+# # need to define `pos`
 
-numHum = np.size(pos) // 2
-mass = boxSize ** 2 * rho # number of humans in a unit of territory
-internalEnergy = k_b_cgs * T * mu / ((gamma - 1.0) * m_h_cgs)
-internalEnergy *= (unit_time / unit_length) ** 2
+# numHum = np.size(pos) // 2
+# mass = boxSize ** 2 * rho # number of humans in a unit of territory
+# internalEnergy = k_b_cgs * T * mu / ((gamma - 1.0) * m_h_cgs)
+# internalEnergy *= (unit_time / unit_length) ** 2
 
-# File
-f = h5.File(fileName, "w")
+# # File
+# f = h5.File(fileName, "w")
 
-# Header
-grp = f.create_group("/Header")
-grp.attrs["BoxSize"] = boxSize
-grp.attrs["NumHum_Total"] = [numHum, 0, 0, 0, 0, 0]
-grp.attrs["NumHum_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
-grp.attrs["NumHum_ThisFile"] = [numHum, 0, 0, 0, 0, 0]
-grp.attrs["Time"] = 0.0
-grp.attrs["NumFilesPerSnapshot"] = 1
-grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# grp.attrs["Flag_Entropy_ICs"] = 0
+# # Header
+# grp = f.create_group("/Header")
+# grp.attrs["BoxSize"] = boxSize
+# grp.attrs["NumHum_Total"] = [numHum, 0, 0, 0, 0, 0]
+# grp.attrs["NumHum_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
+# grp.attrs["NumHum_ThisFile"] = [numHum, 0, 0, 0, 0, 0]
+# grp.attrs["Time"] = 0.0
+# grp.attrs["NumFilesPerSnapshot"] = 1
+# grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# # grp.attrs["Flag_Entropy_ICs"] = 0
 
-# Runtime parameters
-grp = f.create_group("/RuntimePars")
-grp.attrs["PeriodicBoundariesOn"] = periodic
+# # Runtime parameters
+# grp = f.create_group("/RuntimePars")
+# grp.attrs["PeriodicBoundariesOn"] = periodic
 
-# Units
-grp = f.create_group("/Units")
-grp.attrs["Unit length in cgs (U_L)"] = unit_length
-grp.attrs["Unit mass in cgs (U_M)"] = unit_mass
-grp.attrs["Unit time in cgs (U_t)"] = unit_time
-grp.attrs["Unit current in cgs (U_I)"] = 1.0
-grp.attrs["Unit temperature in cgs (U_T)"] = 1.0
+# # Units
+# grp = f.create_group("/Units")
+# grp.attrs["Unit length in cgs (U_L)"] = unit_length
+# grp.attrs["Unit mass in cgs (U_M)"] = unit_mass
+# grp.attrs["Unit time in cgs (U_t)"] = unit_time
+# grp.attrs["Unit current in cgs (U_I)"] = 1.0
+# grp.attrs["Unit temperature in cgs (U_T)"] = 1.0
 
-# Particle group
-grp = f.create_group("/PartType0") # humans
+# # Particle group
+# grp = f.create_group("/PartType0") # humans
 
-v = np.zeros((numHum, 2))
-ds = grp.create_dataset("Velocities", (numHum, 2), "f")
-ds[()] = v
+# v = np.zeros((numHum, 2))
+# ds = grp.create_dataset("Velocities", (numHum, 2), "f")
+# ds[()] = v
 
-m = np.full((numHum, 1), mass)
-ds = grp.create_dataset("Masses", (numHum, 1), "f")
-ds[()] = m
+# m = np.full((numHum, 1), mass)
+# ds = grp.create_dataset("Masses", (numHum, 1), "f")
+# ds[()] = m
 
-h = np.reshape(h, (numHum, 1))
-ds = grp.create_dataset("SmoothingLength", (numHum, 1), "f")
-ds[()] = h
+# h = np.reshape(h, (numHum, 1))
+# ds = grp.create_dataset("SmoothingLength", (numHum, 1), "f")
+# ds[()] = h
 
-u = np.full((numHum, 1), internalEnergy)
-ds = grp.create_dataset("InternalEnergy", (numHum, 1), "f")
-ds[()] = u
+# u = np.full((numHum, 1), internalEnergy)
+# ds = grp.create_dataset("InternalEnergy", (numHum, 1), "f")
+# ds[()] = u
 
-ids = np.reshape(ids, (numHum, 1))
-ds = grp.create_dataset("ParticleIDs", (numHum, 1), "L")
-ds[()] = ids
+# ids = np.reshape(ids, (numHum, 1))
+# ds = grp.create_dataset("ParticleIDs", (numHum, 1), "L")
+# ds[()] = ids
 
-ds = grp.create_dataset("Coordinates", (numHum, 2), "d")
-ds[()] = pos
+# ds = grp.create_dataset("Coordinates", (numHum, 2), "d")
+# ds[()] = pos
 
-f.close()
-
-print("Initial condition generated")
+# f.close()

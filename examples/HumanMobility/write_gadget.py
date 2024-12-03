@@ -117,7 +117,7 @@ def write_header(f, boxsize, flag_entropy, np_total, np_total_hw, other=False):
 
     default_attributes = {
         "BoxSize": boxsize,
-        "Flag_Entropy_ICs": flag_entropy,
+        # "Flag_Entropy_ICs": flag_entropy,
         "NumPart_Total": np_total,
         "NumPart_Total_HighWord": np_total_hw,
         "NumFilesPerSnapshot": 1,  # required for backwards compatibility
@@ -180,9 +180,9 @@ def write_runtime_pars(f, periodic_boundary, other=False):
 
 
 def write_units(f, current, length, mass, temperature, time, other=False):
-    """ Writes the "RuntimeParams" section in the hdf5 file. The parameters in
+    """ Writes the "Units" section in the hdf5 file. The parameters in
         this function that are required are also required for SWIFT to function.
-        If you wish to pass extra arguments into the runtime parameters you
+        If you wish to pass extra arguments into the units you
         may do that by providing a dictionary to other.
 
         @param: f | file handle

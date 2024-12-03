@@ -15,6 +15,7 @@ TimeIntegration:
 
 # Parameters governing the snapshots
 Snapshots:
+  subdir:              data
   basename:            humanMobility # Common part of the name of output files
   time_first:          0.         # Time of the first output (in internal units)
   delta_time:          1e-2 #1440        # Time difference between consecutive outputs (in internal units)
@@ -29,10 +30,11 @@ SPH:
   CFL_condition:         0.1      # Courant-Friedrich-Levy condition for time integration.
 
 Scheduler:
-  tasks_per_cell: 64
+  max_top_level_cells: 3
+#   tasks_per_cell: 64
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:  ./humans.hdf5     # The file to read
+  file_name:  humans.hdf5     # The file to read
   periodic:   1
   
