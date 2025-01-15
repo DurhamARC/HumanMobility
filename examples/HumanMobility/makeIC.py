@@ -55,8 +55,8 @@ class Humans(object):
         """
         Calculates velocities of humans.
         """
-        v_x = (np.random.rand(self.nhumans)-0.5)*200
-        v_y = (np.random.rand(self.nhumans)-0.5)*200
+        v_x = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
+        v_y = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
         v_z = np.zeros(self.nhumans)
 
         self.velocities = np.array([v_x, v_y, v_z]).T
@@ -91,12 +91,12 @@ class Humans(object):
         with h5.File(filename, "w") as handle:
             wg.write_header(
                 handle,
-                boxsize=boxsize,
+                boxsize=[boxsize, boxsize],
                 flag_entropy=0,
-                np_total=np.array([self.nhumans, 0, 0, 0, 0, 0]),
+                np_total=np.array([0, self.nhumans, 0, 0, 0, 0]),
                 np_total_hw=np.array([0, 0, 0, 0, 0, 0]),
                 other={
-                    "MassTable": np.array([self.humanmass, 0, 0, 0, 0, 0]),
+                    "MassTable": np.array([0, self.humanmass, 0, 0, 0, 0]),
                     "Time": 0,
                     "Dimension": 2,
                     "Flag_Entropy_ICs": 0,
@@ -111,14 +111,14 @@ class Humans(object):
 
             wg.write_block(
                 handle,
-                0,  # gas
+                1,  # gas, # particles, dark matter
                 self.positions,
                 self.velocities,
                 self.ids,
                 mass=self.masses,
                 int_energy=self.internalenergy,
                 smoothing=self.smoothing,
-                other={"Density": self.densities},
+#                other={"Density": self.densities},
             )
 
         return
@@ -206,7 +206,7 @@ if __name__ == "__main__":
              Mass of the humans. Default: 1.
              """,
         required=False,
-        default=1.0,
+        default=1e5,
     )
 
     PARSER.add_argument(

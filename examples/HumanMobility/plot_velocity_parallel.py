@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 import sys
+import os
 
 plt.style.use("../../tools/stylesheets/mnras.mplstyle")
 
 import multiprocessing
-import os
+from functools import partial
 
-def process_file(i):
+def process_file(i, min_x, max_x, min_y, max_y):
     filename_hdf5 = "data/humanMobility_%04d.hdf5" % i  # Adjust the filename pattern as needed
     filename_png = "images/humanMobility_%04d.png" % i
 
@@ -27,21 +28,22 @@ def process_file(i):
         # sim = h5py.File("humanMobility_%04d.hdf5" % snap, "r")
         boxSize = sim["/Header"].attrs["BoxSize"][0]
         time = sim["/Header"].attrs["Time"][0]
-        scheme = sim["/HydroScheme"].attrs["Scheme"]
-        kernel = sim["/HydroScheme"].attrs["Kernel function"]
-        neighbours = sim["/HydroScheme"].attrs["Kernel target N_ngb"]
-        eta = sim["/HydroScheme"].attrs["Kernel eta"]
+        # scheme = sim["/HydroScheme"].attrs["Scheme"]
+        # kernel = sim["/HydroScheme"].attrs["Kernel function"]
+        # neighbours = sim["/HydroScheme"].attrs["Kernel target N_ngb"]
+        # eta = sim["/HydroScheme"].attrs["Kernel eta"]
+        point_mass = sim["/Parameters"].attrs["PointMassPotential:mass"]
         git = sim["Code"].attrs["Git Revision"]
 
-        pos = sim["/PartType0/Coordinates"][:, :]
+        pos = sim["/PartType1/Coordinates"][:, :]
         x = pos[:, 0] - boxSize / 2
         y = pos[:, 1] - boxSize / 2
-        vel = sim["/PartType0/Velocities"][:, :]
+        vel = sim["/PartType1/Velocities"][:, :]
         v_norm = np.sqrt(vel[:, 0] ** 2 + vel[:, 1] ** 2)
-        rho = sim["/PartType0/Densities"][:]
-        u = sim["/PartType0/InternalEnergies"][:]
-        S = sim["/PartType0/Entropies"][:]
-        P = sim["/PartType0/Pressures"][:]
+        # rho = sim["/PartType0/Densities"][:]
+        # u = sim["/PartType0/InternalEnergies"][:]
+        # S = sim["/PartType0/Entropies"][:]
+        # P = sim["/PartType0/Pressures"][:]
 
         X = pos[:, 0]
         Y = pos[:, 1]
@@ -60,26 +62,26 @@ def process_file(i):
 
         # Determine a suitable scale for the arrow lengths
         max_M = np.max(M)
-        desired_max_arrow_length = 0.05  # Adjust this value as needed
+        desired_max_arrow_length = 0.02  # Adjust this value as needed
         scale = max_M / desired_max_arrow_length
 
         # Plotting the velocity vectors using quiver
         # Create the plot
         fig, ax = plt.subplots()
-        ax.set_title("Velocity map of human mobility %04d" % i)
+        ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n point-mass=%s" % (i, scale, point_mass))
 
         # Create the quiver plot
         Q = ax.quiver(
-            X,        # X positions
-            Y,        # Y positions
-            U,        # X components of velocity
-            V,        # Y components of velocity
-            M,          # Color by velocity magnitude
+            X,              # X positions
+            Y,              # Y positions
+            U,              # X components of velocity
+            V,              # Y components of velocity
+            M,              # Color by velocity magnitude
+            scale=scale,    # Scale for arrow lengths
+            pivot='tip',
             # angles='xy',
             # scale_units='xy',
-            scale=scale,      # Scale for arrow lengths
             # cmap="PuBu",
-            pivot='tip',
             # width=0.025,
             # headwidth=30,
             # headlength=50,
@@ -96,8 +98,7 @@ def process_file(i):
         # Add a colorbar associated with the quiver plot
         cbar = fig.colorbar(Q, ax=ax, label='Velocity Magnitude')
 
-        qk = ax.quiverkey(Q, 0.9, 0.9, 1, r'$1 \frac{m}{s}$', labelpos='E',
-                        coordinates='figure')
+        qk = ax.quiverkey(Q, 0.9, 0.9, 1, r'$1 \frac{m}{s}$', labelpos='E', coordinates='figure')
         # Add labels and formatting
         # plt.text(
         #     0.97, 0.97, "${\\rm{Velocity~vectors}}$",
@@ -105,8 +106,8 @@ def process_file(i):
         # )
         plt.xlabel("${\\rm{Position}}~x$", labelpad=0)
         plt.ylabel("${\\rm{Position}}~y$", labelpad=0)
-        plt.xlim(0, 1000)
-        plt.ylim(0, 1000)
+        plt.xlim(min_x, max_x)
+        plt.ylim(min_y, max_y)
         # plt.tight_layout()
 
         plt.savefig(filename_png, dpi=200)
@@ -114,7 +115,17 @@ def process_file(i):
 
 
 if __name__ == '__main__':
+    
+    # Constants for the arguments
     num_files = int(sys.argv[1])   # Adjust to the number of your HDF5 files
+    min_x = int(sys.argv[2])
+    max_x = int(sys.argv[3])
+    min_y = int(sys.argv[4])
+    max_y = int(sys.argv[5])
+
+    # Create a partial function with fixed additional arguments
+    partial_process_file = partial(process_file, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+
     file_indices = list(range(num_files))
 
     # Determine the number of CPUs to use
@@ -122,5 +133,5 @@ if __name__ == '__main__':
 
     # Create a pool of worker processes
     with multiprocessing.Pool(processes=num_processes) as pool:
-        # Map the function to the list of file indices
-        pool.map(process_file, file_indices)
+        # Map the partial function to the list of file indices
+        pool.map(partial_process_file, file_indices)

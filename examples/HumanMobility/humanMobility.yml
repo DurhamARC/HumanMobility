@@ -9,9 +9,9 @@ InternalUnitSystem:
 # Parameters governing the time integration
 TimeIntegration:
   time_begin: 0.    # The starting time of the simulation (in internal units).
-  time_end:   4.5 #43200 # minutes in a month  # The end time of the simulation (in internal units).
-  dt_min:     1e-6     # minute #1e-5  # The minimal time-step size of the simulation (in internal units).
-  dt_max:     1e-2 #1440   # The maximal time-step size of the simulation (in internal units).
+  time_end:   5 #43200 # minutes in a month  # The end time of the simulation (in internal units).
+  dt_min:     1e-7     # minute #1e-5  # The minimal time-step size of the simulation (in internal units).
+  dt_max:     1e-1 #1440   # The maximal time-step size of the simulation (in internal units).
 
 # Parameters governing the snapshots
 Snapshots:
@@ -31,10 +31,18 @@ SPH:
 
 Scheduler:
   max_top_level_cells: 3
-#   tasks_per_cell: 64
+  tasks_per_cell: 64
 
 # Parameters related to the initial conditions
 InitialConditions:
   file_name:  humans.hdf5     # The file to read
   periodic:   1
   
+# ConstantPotential:
+#   g_cgs:      [0., -98, 0.]  # Earth acceleration along z-axis (cgs units)
+
+PointMassPotential:
+  position:         [4950., 4950., 0.]  # Location of the point mass (internal units)
+  useabspos:                   1  # Use absolute positions (0 for relative to centre)
+  mass:                      1e14  # Mass of the point (internal units)
+  # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition

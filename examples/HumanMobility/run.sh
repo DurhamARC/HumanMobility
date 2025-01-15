@@ -4,7 +4,7 @@
 # Remove previously generated data and images to regenerate the new ones
 rm humans.hdf5
 rm data/*
-rm images/*
+#rm images/*
 
 # Generate the initial conditions if they are not present.
 if [ ! -e humans.hdf5 ]
@@ -14,9 +14,4 @@ then
 fi
 
 # Run SWIFT
-swift --hydro --threads=4 -n 1000 humanMobility.yml
-
-# Plot the result
-python3 plot_velocity_parallel.py 450 # number of snapshots
-
-python3 generate_GIF.py
+swift -g --threads=4 -n 10000 humanMobility.yml
