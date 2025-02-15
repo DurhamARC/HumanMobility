@@ -49,8 +49,8 @@
 #include "./hydro/Gasoline/hydro_io.h"
 #elif defined(ANARCHY_PU_SPH)
 #include "./hydro/AnarchyPU/hydro_io.h"
-#elif defined(HUMANMOBILITY_SPH)
-#include "./hydro/HumanMobility/hydro_io.h"
+#elif defined(ABM_SPH)
+#include "./abm/abm_io.h"
 #else
 #error "Invalid choice of SPH variant"
 #endif

@@ -37,12 +37,19 @@ Scheduler:
 InitialConditions:
   file_name:  humans.hdf5     # The file to read
   periodic:   1
+
+PhysicalConstants:
+  G: 1.0  # Gravitational constant in internal units
   
 # ConstantPotential:
 #   g_cgs:      [0., -98, 0.]  # Earth acceleration along z-axis (cgs units)
 
-PointMassPotential:
-  position:         [4950., 4950., 0.]  # Location of the point mass (internal units)
-  useabspos:                   1  # Use absolute positions (0 for relative to centre)
-  mass:                      1e14  # Mass of the point (internal units)
-  # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition
+# PointMassPotential:
+#   position:         [4950., 4950., 0.]  # Location of the point mass (internal units)
+#   useabspos:                   1  # Use absolute positions (0 for relative to centre)
+#   mass:                      1e14  # Mass of the point (internal units)
+#   # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition
+
+RiverPotential:
+  position:        [5010., 5090.]  # y-coordinates of the river (internal units)
+  mass:     1e6  # "Mass" of the "river" (internal units)

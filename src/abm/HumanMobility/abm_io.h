@@ -1,6 +1,6 @@
 /*******************************************************************************
- * This file is part of SWIFT.
- * Copyright (c) 2016 Matthieu Schaller (schaller@strw.leidenuniv.nl)
+ * This file is part of SWIFT_ABM.
+ * Copyright (c) 2025 Dmitry Nikolaenko (dmitry.nikolaenko@durham.ac.uk)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_HUMANMOBILITY_HYDRO_IO_H
-#define SWIFT_HUMANMOBILITY_HYDRO_IO_H
+#ifndef SWIFT_HUMANMOBILITY_ABM_IO_H
+#define SWIFT_HUMANMOBILITY_ABM_IO_H
 
 /**
- * @file HumanMobility/hydro_io.h
+ * @file HumanMobility/abm_io.h
  * @brief Minimal conservative implementation of SPH (i/o routines)
  *
  * The thermal variable is the internal energy (u). Simple constant
@@ -36,6 +36,8 @@
 #include "adiabatic_index.h"
 #include "hydro.h"
 #include "hydro_parameters.h"
+#include "abm.h"
+#include "abm_parameters.h"
 #include "io_properties.h"
 #include "kernel_hydro.h"
 
@@ -247,4 +249,4 @@ INLINE static void hydro_write_flavour(hid_t h_grpsph) {
  */
 INLINE static int writeEntropyFlag(void) { return 0; }
 
-#endif /* SWIFT_HUMANMOBILITY_HYDRO_IO_H */
+#endif /* SWIFT_HUMANMOBILITY_ABM_IO_H */

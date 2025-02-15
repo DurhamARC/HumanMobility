@@ -1,6 +1,6 @@
 /*******************************************************************************
- * This file is part of SWIFT.
- * Copyright (c) 2019 Josh Borrow (joshua.borrow@durham.ac.uk)
+ * This file is part of SWIFT_ABM.
+ * Copyright (c) 2025 Dmitry Nikolaenko (dmitry.nikolaenko@durham.ac.uk)
  *
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,8 +18,8 @@
  *
  ******************************************************************************/
 
-#ifndef SWIFT_HUMANMOBILITY_HYDRO_PARAMETERS_H
-#define SWIFT_HUMANMOBILITY_HYDRO_PARAMETERS_H
+#ifndef SWIFT_HUMANMOBILITY_ABM_PARAMETERS_H
+#define SWIFT_HUMANMOBILITY_ABM_PARAMETERS_H
 
 /* Configuration file */
 #include <config.h>
@@ -35,7 +35,7 @@
 #include "inline.h"
 
 /**
- * @file HumanMobility/hydro_parameters.h
+ * @file HumanMobility/abm_parameters.h
  * @brief Minimal conservative implementation of SPH . (default parameters)
  *
  *        This file defines a number of things that are used in
@@ -187,4 +187,4 @@ static INLINE void diffusion_print_snapshot(
     hid_t h_grpsph, const struct diffusion_global_data* diffusion) {}
 #endif
 
-#endif /* SWIFT_HUMANMOBILITY_HYDRO_PARAMETERS_H */
+#endif /* SWIFT_HUMANMOBILITY_ABM_PARAMETERS_H */

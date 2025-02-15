@@ -1,6 +1,6 @@
 /*******************************************************************************
- * This file is part of SWIFT.
- * Copyright (c) 2016 Matthieu Schaller (schaller@strw.leidenuniv.nl)
+ * This file is part of SWIFT_ABM.
+ * Copyright (c) 2025 Dmitry Nikolaenko (dmitry.nikolaenko@durham.ac.uk)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_HUMANMOBILITY_HYDRO_IACT_H
-#define SWIFT_HUMANMOBILITY_HYDRO_IACT_H
+#ifndef SWIFT_HUMANMOBILITY_ABM_IACT_H
+#define SWIFT_HUMANMOBILITY_ABM_IACT_H
 
 /**
- * @file HumanMobility/hydro_iact.h
+ * @file HumanMobility/abm_iact.h
  * @brief Minimal conservative implementation of SPH (Neighbour loop equations)
  *
  * The thermal variable is the internal energy (u). Simple constant
@@ -34,9 +34,14 @@
 
 #include "adaptive_softening_iact.h"
 #include "adiabatic_index.h"
-#include "hydro_parameters.h"
+#include "abm_parameters.h"
 #include "minmax.h"
 #include "signal_velocity.h"
+#ifdef HM_CASE_RANDOMWALK
+#include <stdlib.h>
+#include <time.h>
+#include "abm_utils.h"
+#endif
 
 /**
  * @brief Density interaction between two particles.
@@ -330,6 +335,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term + adapt_soft_acc_term;
 
+#ifdef HM_CASE_RANDOMWALK
+  // Seed the random number generator with the current time
+  srand(time(NULL));
+  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
+  _kick_random_walk(pj, dx, abm_max_rand, abm_div_rand);
+#else
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];
@@ -338,6 +349,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pj->a_hydro[0] += mi * acc * dx[0];
   pj->a_hydro[1] += mi * acc * dx[1];
   pj->a_hydro[2] += mi * acc * dx[2];
+#endif
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = P_over_rho2_i * dvdr * r_inv * wi_dr;
@@ -465,10 +477,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term + adapt_soft_acc_term;
 
+#ifdef HM_CASE_RANDOMWALK
+  // Seed the random number generator with the current time
+  srand(time(NULL));
+  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
+#else
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];
   pi->a_hydro[2] -= mj * acc * dx[2];
+#endif
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = P_over_rho2_i * dvdr * r_inv * wi_dr;
@@ -489,4 +507,4 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   pi->force.v_sig = max(pi->force.v_sig, v_sig);
 }
 
-#endif /* SWIFT_HUMANMOBILITY_HYDRO_IACT_H */
+#endif /* SWIFT_HUMANMOBILITY_ABM_IACT_H */

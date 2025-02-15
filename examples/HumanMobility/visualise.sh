@@ -3,10 +3,10 @@
 rm images/*
 
 num_files=501
-min_x=4000
-max_x=6000
-min_y=4000
-max_y=6000
+min_x=3000
+max_x=7000
+min_y=3000
+max_y=7000
 
 # Plot the result
 python3 plot_velocity_parallel.py ${num_files} ${min_x} ${max_x} ${min_y} ${max_y}

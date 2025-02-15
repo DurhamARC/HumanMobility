@@ -1,6 +1,6 @@
 /*******************************************************************************
- * This file is part of SWIFT.
- * Copyright (c) 2016 Matthieu Schaller (schaller@strw.leidenuniv.nl)
+ * This file is part of SWIFT_ABM.
+ * Copyright (c) 2025 Dmitry Nikolaenko (dmitry.nikolaenko@durham.ac.uk)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_HUMANMOBILITY_HYDRO_DEBUG_H
-#define SWIFT_HUMANMOBILITY_HYDRO_DEBUG_H
+#ifndef SWIFT_HUMANMOBILITY_ABM_DEBUG_H
+#define SWIFT_HUMANMOBILITY_ABM_DEBUG_H
 
 /**
- * @file HumanMobility/hydro_debug.h
+ * @file HumanMobility/abm_debug.h
  * @brief Minimal conservative implementation of SPH (Debugging routines)
  *
  * The thermal variable is the internal energy (u). Simple constant
@@ -55,4 +55,4 @@ __attribute__((always_inline)) INLINE static void hydro_debug_particle(
   }
 }
 
-#endif /* SWIFT_HUMANMOBILITY_HYDRO_DEBUG_H */
+#endif /* SWIFT_HUMANMOBILITY_ABM_DEBUG_H */

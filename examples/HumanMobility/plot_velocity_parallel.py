@@ -28,11 +28,16 @@ def process_file(i, min_x, max_x, min_y, max_y):
         # sim = h5py.File("humanMobility_%04d.hdf5" % snap, "r")
         boxSize = sim["/Header"].attrs["BoxSize"][0]
         time = sim["/Header"].attrs["Time"][0]
+
         # scheme = sim["/HydroScheme"].attrs["Scheme"]
         # kernel = sim["/HydroScheme"].attrs["Kernel function"]
         # neighbours = sim["/HydroScheme"].attrs["Kernel target N_ngb"]
         # eta = sim["/HydroScheme"].attrs["Kernel eta"]
-        point_mass = sim["/Parameters"].attrs["PointMassPotential:mass"]
+
+        # point_mass = sim["/Parameters"].attrs["PointMassPotential:mass"]
+
+        mass = sim["/Parameters"].attrs["RiverPotential:mass"]
+
         git = sim["Code"].attrs["Git Revision"]
 
         pos = sim["/PartType1/Coordinates"][:, :]
@@ -68,7 +73,7 @@ def process_file(i, min_x, max_x, min_y, max_y):
         # Plotting the velocity vectors using quiver
         # Create the plot
         fig, ax = plt.subplots()
-        ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n point-mass=%s" % (i, scale, point_mass))
+        ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n \"river mass\"=%s" % (i, scale, mass))
 
         # Create the quiver plot
         Q = ax.quiver(

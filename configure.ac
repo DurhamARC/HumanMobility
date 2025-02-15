@@ -2146,14 +2146,90 @@ case "$with_hydro" in
    anarchy-pu)
       AC_DEFINE([ANARCHY_PU_SPH], [1], [ANARCHY (PU) SPH])
    ;;
-   human-mobility)
-      AC_DEFINE([HUMANMOBILITY_SPH], [1], [HumanMobility SPH])
+   abm)
+      AC_DEFINE([ABM_SPH], [1], [ABM SPH])
    ;;
-
    *)
       AC_MSG_ERROR([Unknown hydrodynamics scheme: $with_hydro])
    ;;
 esac
+
+# ABM scheme.
+AC_ARG_WITH([abm],
+   [AS_HELP_STRING([--with-abm=<scheme>],
+      [Agent-based modelling to use @<:@none, human-mobility default: none@:>@]
+   )],
+   [with_abm="$withval"],
+   [with_abm="none"]
+)
+
+case "$with_abm" in
+   none)
+      AC_DEFINE([NONE_ABM], [1], [No ABM])
+   ;;
+   human-mobility)
+      AC_DEFINE([HUMANMOBILITY_ABM], [1], [HumanMobility ABM])
+   ;;
+   *)
+      AC_MSG_ERROR([Unknown agent-based modelling scheme: $with_abm])
+   ;;
+esac
+
+# Require --with-hydro=abm if ABM is requested
+if test "x$with_abm" != "xnone"; then
+   if test "x$with_hydro" != "xabm"; then
+      AC_MSG_ERROR([
+         ABM scheme requires '--with-hydro=abm'. 
+         Please set '--with-hydro=abm' if you want ABM, or 
+         disable ABM by not using '--with-abm' (or '--with-abm=none').
+      ])
+   fi
+   # You can add additional AC_DEFINE statements here if needed
+   # for different internal ABM variants, etc.
+fi
+
+# HM case.
+AC_ARG_WITH([hm],
+   [AS_HELP_STRING([--with-hm=<case>],
+      [Human mobility scenario @<:@none, random-walk, river default: none@:>@]
+   )],
+   [with_hm="$withval"],
+   [with_hm="none"]
+)
+
+case "$with_hm" in
+   none)
+      AC_DEFINE([HM_CASE_NONE], [1], [No HM case])
+   ;;
+   random-walk)
+      AC_DEFINE([HM_CASE_RANDOMWALK], [1], [HM case Random Walk])
+   ;;
+   river)
+      AC_DEFINE([HM_CASE_RIVER], [1], [HM case River])
+   ;;
+   # river)
+   #    AC_DEFINE([EXTERNAL_POTENTIAL_RIVER], [1], [River obstactle.])
+   # ;;
+   # new-case)
+   #    AC_DEFINE([HM_CASE_NEWSCENARIO], [1], [HM case New Scenario]) 
+   # ;;
+   *)
+      AC_MSG_ERROR([Unknown HM case: $with_hm])
+   ;;
+esac
+
+# Require --with-abm=human-mobility if HM case is requested
+if test "x$with_hm" != "xnone"; then
+   if test "x$with_abm" != "xhuman-mobility"; then
+      AC_MSG_ERROR([
+         HM case requires '--with-abm=human-mobility'. 
+         Please set '--with-abm=human-mobility' if you want HM case, or 
+         disable HM case by not using '--with-hm' (or '--with-hm=none').
+      ])
+   fi
+   # You can add additional AC_DEFINE statements here if needed
+   # for different internal ABM variants, etc.
+fi
 
 # SPMHD scheme.
 AC_ARG_WITH([spmhd],
@@ -2801,7 +2877,7 @@ esac
 #  External potential
 AC_ARG_WITH([ext-potential],
    [AS_HELP_STRING([--with-ext-potential=<pot>],
-      [external potential @<:@none, point-mass, point-mass-softened, isothermal, nfw, nfw-mn, hernquist, hernquist-sdmh05, disc-patch, sine-wave, MWPotential2014, constant, default: none@:>@]
+      [external potential @<:@none, point-mass, point-mass-softened, isothermal, nfw, nfw-mn, hernquist, hernquist-sdmh05, disc-patch, sine-wave, MWPotential2014, constant, human-mobility default: none@:>@]
    )],
    [with_potential="$withval"],
    [with_potential="none"]
@@ -2843,10 +2919,23 @@ case "$with_potential" in
    constant)
       AC_DEFINE([EXTERNAL_POTENTIAL_CONSTANT], [1], [Constant gravitational acceleration.])
    ;;
+   human-mobility)
+      AC_DEFINE([EXTERNAL_POTENTIAL_ABM], [1], [Geographic external potential for ABM Human Mobility.])
+   ;;
    *)
       AC_MSG_ERROR([Unknown external potential: $with_potential])
    ;;
 esac
+
+# Require --with-abm=human-mobility if geographic external potential for ABM Human Mobility is requested
+if test "x$with_potential" = "xhuman-mobility"; then
+   if test "x$with_abm" != "xhuman-mobility"; then
+      AC_MSG_ERROR([
+         Geographic external potential for ABM-HM requires '--with-abm=human-mobility'. 
+         Please set '--with-abm=human-mobility' if you want geographic external potential.
+      ])
+   fi
+fi
 
 #  Entropy floor
 AC_ARG_WITH([entropy-floor],
@@ -3215,6 +3304,7 @@ AC_MSG_RESULT([
    Riemann solver     : $with_riemann
    SPMHD scheme       : $with_spmhd
    Adaptive softening : $with_adaptive_softening
+   ABM scheme         : $with_abm
 
    Gravity scheme      : $with_gravity
    Multipole order     : $with_multipole_order

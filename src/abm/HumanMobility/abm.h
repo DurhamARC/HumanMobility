@@ -1,6 +1,6 @@
 /*******************************************************************************
- * This file is part of SWIFT.
- * Copyright (c) 2016 Matthieu Schaller (schaller@strw.leidenuniv.nl)
+ * This file is part of SWIFT_ABM.
+ * Copyright (c) 2025 Dmitry Nikolaenko (dmitry.nikolaenko@durham.ac.uk)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published
@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  ******************************************************************************/
-#ifndef SWIFT_HUMANMOBILITY_HYDRO_H
-#define SWIFT_HUMANMOBILITY_HYDRO_H
+#ifndef SWIFT_HUMANMOBILITY_ABM_H
+#define SWIFT_HUMANMOBILITY_ABM_H
 
 /**
- * @file HumanMobility/hydro.h
+ * @file HumanMobility/abm.h
  * @brief Minimal conservative implementation of SPH (Non-neighbour loop
  * equations)
  *
@@ -42,7 +42,7 @@
 #include "hydro_parameters.h"
 #include "hydro_properties.h"
 #include "hydro_space.h"
-#include "kernel_hydro.h"
+#include "kernel_hydro.h" //?
 #include "minmax.h"
 #include "pressure_floor.h"
 
@@ -525,6 +525,7 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.rot_v[0] = 0.f;
   p->density.rot_v[1] = 0.f;
   p->density.rot_v[2] = 0.f;
+  // _abm_rand_params(p, 100, 10.0); //for random walk
 }
 
 /**
@@ -1021,4 +1022,4 @@ hydro_set_init_internal_energy(struct part *p, float u_init) {
 __attribute__((always_inline)) INLINE static void hydro_remove_part(
     const struct part *p, const struct xpart *xp, const double time) {}
 
-#endif /* SWIFT_HUMANMOBILITY_HYDRO_H */
+#endif /* SWIFT_HUMANMOBILITY_ABM_H */
