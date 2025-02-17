@@ -162,6 +162,7 @@ int main(int argc, char *argv[]) {
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
+  int with_abm = 0;
   int with_aff = 0;
   int with_nointerleave = 0;
   int with_interleave = 0; /* Deprecated. */
@@ -218,6 +219,9 @@ int main(int argc, char *argv[]) {
       OPT_HELP(),
 
       OPT_GROUP("  Simulation options:\n"),
+      OPT_BOOLEAN('A', "abm", &with_abm,
+                  "Run with the Agent-Based Modelling (ABM) engine.", NULL, 0,
+                  0),
       OPT_BOOLEAN('b', "feedback", &with_feedback, "Run with stars feedback.",
                   NULL, 0, 0),
       OPT_BOOLEAN('c', "cosmology", &with_cosmology,
@@ -638,6 +642,15 @@ int main(int argc, char *argv[]) {
       pretime_message(
           "Error: Cannot use line-of-sight outputs without gas, --hydro must "
           "be chosen.");
+    }
+    return 1;
+  }
+
+  if (!with_hydro && with_abm) {
+    if (myrank == 0) {
+      argparse_usage(&argparse);
+      pretime_message(
+          "Error: --hydro must be chosen to process ABM.");
     }
     return 1;
   }
@@ -1086,6 +1099,11 @@ int main(int argc, char *argv[]) {
       error(
           "Can't run with black holes when compiled without a black hole "
           "model!");
+#endif
+    }
+    if (with_abm) {
+#ifdef NONE_ABM
+      error("Can't run with ABM when compiled without a ABM model!");
 #endif
     }
 
