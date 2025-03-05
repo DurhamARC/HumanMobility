@@ -13,5 +13,12 @@ then
     python3 makeIC.py -f humans.hdf5  #make_hdf5.py
 fi
 
+# Generate acceleration field for river
+if [ ! -e data/river.hdf5 ]
+then
+    echo "Generating acceleration field for the river..."
+    python3 makeRiver.py -f data/river.hdf5
+fi
+
 # Run SWIFT
 swift -g --threads=4 -n 10000 humanMobility.yml

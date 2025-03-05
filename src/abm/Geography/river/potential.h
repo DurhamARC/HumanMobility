@@ -75,16 +75,63 @@ __attribute__((always_inline)) INLINE static float external_gravity_timestep(
  * We change acceleration of humans if they go inside the river.
  *
  * @param time The current time.
- * @param potential The proerties of the external potential.
+ * @param potential The properties of the external potential.
  * @param phys_const The physical constants in internal units.
- * @param g Pointer to the g-particle data.
+ * @param g Pointer to the g-particle data (representing a human).
  */
 __attribute__((always_inline)) INLINE static void external_gravity_acceleration(
     double time, const struct external_potential* restrict potential,
     const struct phys_const* restrict phys_const, struct gpart* restrict g) {
   
-    float dy;
-    
+    float x, y;
+    float dx, dy;
+    int box_size[2], accel_size[2];
+    float* accel_x, accel_y;
+    int index_low[2], index_high[2];
+    float *rx, *ry;
+    float ax_ll, ay_ll, ax_lr, ay_lr, ax_ul, ay_ul, ax_ur, ay_ur;
+    float *ax, *ay;
+
+    const double box_size[2] = {e->s->dim[0], e->s->dim[1]};
+
+    read_acceleration_field(filename, accel_x, accel_y, box_size); // only once!
+
+    // within the 4 anchor points, where are we:
+    // x_rel = ((x / box_size_x) * accel_size[0]) % 1;
+    // y_rel = ((y / box_size_y) * accel_size[1]) % 1;
+  
+    // get the location of a human
+    x = g->x[0];
+    y = g->x[1];
+
+    // find the nearest indices of the location of a human
+    find_nearest_indices_2D(x, y, box_size, accel_size, index_low, index_high, rx, ry);
+
+    // get x- and y-acceleration at the 4 anchor points
+    ax_ll = accel_x[index_low[0] + index_low[1] * accel_size[0]];
+    ay_ll = accel_y[index_low[0] + index_low[1] * accel_size[0]];
+    ax_lr = accel_x[index_high[0] + index_low[1] * accel_size[0]];
+    ay_lr = accel_y[index_high[0] + index_low[1] * accel_size[0]];
+    ax_ul = accel_x[index_low[0] + index_high[1] * accel_size[0]];
+    ay_ul = accel_y[index_low[0] + index_high[1] * accel_size[0]];
+    ax_ur = accel_x[index_high[0] + index_high[1] * accel_size[0]];
+    ay_ur = accel_y[index_high[0] + index_high[1] * accel_size[0];
+
+    // interpolate acceleration for a human at the location
+    // (be careful of periodic boundary condition if applicable)
+    bilinear_interpolation(ax_ll, ay_ll,
+                           ax_lr, ay_lr,
+                           ax_ul, ay_ul,
+                           ax_ur, ay_ur,
+                           rx,    ry,
+                           ax,    ay);
+
+    // particle_i.velocity.x += particle_i_accel_x * dt
+    // particle_i.velocity.y += particle_i_accel_y * dt
+
+    dy = get_distance_to_river(g->x[0], g->x[1], potential->y[0], potential->y[1]);
+
+/*     
     if(g->x[1] < potential->y[0])
       dy = g->x[1] - potential->y[0];
     else if(g->x[1] > potential->y[1])
@@ -98,10 +145,10 @@ __attribute__((always_inline)) INLINE static void external_gravity_acceleration(
   const float rinv3 = rinv * rinv * rinv;
 
   // The acceleration must change when the human is in the river
-  // g->a_grav[0] += potential->mass * dx * rinv3;
-  g->a_grav[1] += potential->mass * dy * rinv3;
-  // g->a_grav[2] += potential->mass * dz * rinv3;
-
+  // g->a_grav[0] = ax + potential->mass * dx * rinv3;
+  g->a_grav[1] = ay + potential->mass * dy * rinv3;
+  // g->a_grav[2] = az + potential->mass * dz * rinv3;
+ */
   // gravity_add_comoving_potential(g, value); // value ?
 
 }

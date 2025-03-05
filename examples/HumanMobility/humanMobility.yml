@@ -53,3 +53,4 @@ PhysicalConstants:
 RiverPotential:
   position:        [5010., 5090.]  # y-coordinates of the river (internal units)
   mass:     1e6  # "Mass" of the "river" (internal units)
+  parameter_file:  river.hdf5
