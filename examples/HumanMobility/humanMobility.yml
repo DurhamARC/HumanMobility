@@ -40,7 +40,25 @@ InitialConditions:
 
 PhysicalConstants:
   G: 1.0  # Gravitational constant in internal units
-  
+
+# Add these gravity parameters
+Gravity:
+  MAC: adaptive           # Multipole Acceptance Criterion (adaptive/geometric)
+  mesh_side_length: 32     # Number of cells in each dimension of the gravity mesh
+  scale_factor_a: 1.0      # Scale factor for cosmological simulations (1.0 for non-cosmological)
+  theta: 0.7              # Opening angle for the gravity calculation
+  theta_cr: 0.5          # Critical opening angle for adaptive MAC
+  theta_min: 0.0         # Minimum opening angle
+  max_smoothing_iterations: 3  # Maximum number of iterations for force smoothing
+  epsilon_fmm: 0.001     # Accuracy parameter for FMM
+  eta: 0.025             # Constant controlling force accuracy in tree-PM algorithm
+  comoving_DM_softening: 0.0  # Softening length for gravity in internal units
+  max_physical_DM_softening: 0.0  # Max physical softening length
+  comoving_baryon_softening: 1.0  # Softening length for gas particles
+  max_physical_baryon_softening: 1.0  # Max physical softening for gas
+  mesh_uses_cell_grad: 1   # Whether to use cell gradients in mesh gravity
+  periodic: 1             # Use periodic gravity (matches InitialConditions)
+
 # ConstantPotential:
 #   g_cgs:      [0., -98, 0.]  # Earth acceleration along z-axis (cgs units)
 
@@ -51,6 +69,6 @@ PhysicalConstants:
 #   # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition
 
 RiverPotential:
-  position:        [5010., 5090.]  # y-coordinates of the river (internal units)
+  position:        [5010., 5090.]  # y-coordinates of the river banks (internal units)
   mass:     1e6  # "Mass" of the "river" (internal units)
-  parameter_file:  river.hdf5
+  parameter_file:  river.hdf5 # Path to acceleration field HDF5 file

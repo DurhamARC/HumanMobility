@@ -32,6 +32,8 @@
 #include "physical_constants.h"
 #include "space.h"
 #include "units.h"
+#include "abm/HumanMobility/abm_utils.h"
+#include "common_io.h"
 
 /**
  * @brief External Potential Properties - River
@@ -45,11 +47,11 @@ struct external_potential {
   /*! Mass */
   double mass;
 
-  /*! Width */
-  // double width;
-
-  /*! Time-step condition pre-factor */
-  // float timestep_mult;
+  /*! Cached acceleration field data */
+  float *ax;
+  float *ay;
+  double box_size[2];
+  int grid_size[2];
 };
 
 
@@ -75,7 +77,7 @@ __attribute__((always_inline)) INLINE static float external_gravity_timestep(
  * We change acceleration of humans if they go inside the river.
  *
  * @param time The current time.
- * @param potential The properties of the external potential.
+ * @param potential The properties of the external potential (representing a river).
  * @param phys_const The physical constants in internal units.
  * @param g Pointer to the g-particle data (representing a human).
  */
@@ -83,39 +85,43 @@ __attribute__((always_inline)) INLINE static void external_gravity_acceleration(
     double time, const struct external_potential* restrict potential,
     const struct phys_const* restrict phys_const, struct gpart* restrict g) {
   
-    float x, y;
-    float dx, dy;
-    int box_size[2], accel_size[2];
-    float* accel_x, accel_y;
-    int index_low[2], index_high[2];
-    float *rx, *ry;
+    double x, y;
+    double box_size[2];
+    int accel_size[2];
+    float *accel_x, *accel_y;
+    int xi, yi;
+    float rx, ry;
     float ax_ll, ay_ll, ax_lr, ay_lr, ax_ul, ay_ul, ax_ur, ay_ur;
-    float *ax, *ay;
+    float ax, ay;
 
-    const double box_size[2] = {e->s->dim[0], e->s->dim[1]};
-
-    read_acceleration_field(filename, accel_x, accel_y, box_size); // only once!
-
-    // within the 4 anchor points, where are we:
-    // x_rel = ((x / box_size_x) * accel_size[0]) % 1;
-    // y_rel = ((y / box_size_y) * accel_size[1]) % 1;
-  
     // get the location of a human
     x = g->x[0];
     y = g->x[1];
+    box_size[0] = potential->box_size[0];
+    box_size[1] = potential->box_size[1];
+    accel_size[0] = potential->grid_size[0];
+    accel_size[1] = potential->grid_size[1];
+    accel_x = potential->ax;
+    accel_y = potential->ay;
 
     // find the nearest indices of the location of a human
-    find_nearest_indices_2D(x, y, box_size, accel_size, index_low, index_high, rx, ry);
+    find_nearest_indices_2D(x, y, box_size, accel_size, &xi, &yi, &rx, &ry); //+0.5*box_size[0]
+
+    // correct the indices if they are out of the range
+    if (xi < 0) xi = 0;
+    if (xi >= accel_size[0]-1) xi = accel_size[0]-2;
+    if (yi < 0) yi = 0;
+    if (yi >= accel_size[1]-1) yi = accel_size[1]-2;
 
     // get x- and y-acceleration at the 4 anchor points
-    ax_ll = accel_x[index_low[0] + index_low[1] * accel_size[0]];
-    ay_ll = accel_y[index_low[0] + index_low[1] * accel_size[0]];
-    ax_lr = accel_x[index_high[0] + index_low[1] * accel_size[0]];
-    ay_lr = accel_y[index_high[0] + index_low[1] * accel_size[0]];
-    ax_ul = accel_x[index_low[0] + index_high[1] * accel_size[0]];
-    ay_ul = accel_y[index_low[0] + index_high[1] * accel_size[0]];
-    ax_ur = accel_x[index_high[0] + index_high[1] * accel_size[0]];
-    ay_ur = accel_y[index_high[0] + index_high[1] * accel_size[0];
+    ax_ll = accel_x[xi * accel_size[0] + yi];
+    ay_ll = accel_y[xi * accel_size[0] + yi];
+    ax_lr = accel_x[(xi+1) * accel_size[0] + yi];
+    ay_lr = accel_y[(xi+1) * accel_size[0] + yi];
+    ax_ul = accel_x[xi * accel_size[0] + (yi+1)];
+    ay_ul = accel_y[xi * accel_size[0] + (yi+1)];
+    ax_ur = accel_x[(xi+1) * accel_size[0] + (yi+1)];
+    ay_ur = accel_y[(xi+1) * accel_size[0] + (yi+1)];
 
     // interpolate acceleration for a human at the location
     // (be careful of periodic boundary condition if applicable)
@@ -124,33 +130,16 @@ __attribute__((always_inline)) INLINE static void external_gravity_acceleration(
                            ax_ul, ay_ul,
                            ax_ur, ay_ur,
                            rx,    ry,
-                           ax,    ay);
+                           &ax,   &ay);
 
-    // particle_i.velocity.x += particle_i_accel_x * dt
-    // particle_i.velocity.y += particle_i_accel_y * dt
+  // if (ax > 1e+10 || ay > 1e+10)
+  //   error("Acceleration is too high (human is inside river): %f %f", ax, ay);
 
-    dy = get_distance_to_river(g->x[0], g->x[1], potential->y[0], potential->y[1]);
+  g->a_grav[0] += ax;
+  g->a_grav[1] += ay;
+  // g->a_grav[2] = az;
 
-/*     
-    if(g->x[1] < potential->y[0])
-      dy = g->x[1] - potential->y[0];
-    else if(g->x[1] > potential->y[1])
-      dy = g->x[1] - potential->y[1];
-    else {
-      dy = 0;
-      message("Human is inside the river!!!");
-    }
-
-  const float rinv = 1.f / sqrtf(dy * dy);
-  const float rinv3 = rinv * rinv * rinv;
-
-  // The acceleration must change when the human is in the river
-  // g->a_grav[0] = ax + potential->mass * dx * rinv3;
-  g->a_grav[1] = ay + potential->mass * dy * rinv3;
-  // g->a_grav[2] = az + potential->mass * dz * rinv3;
- */
   // gravity_add_comoving_potential(g, value); // value ?
-
 }
 
 /**
@@ -172,6 +161,66 @@ external_gravity_get_potential_energy(
 }
 
 /**
+ * 
+*/
+static INLINE void geography_read_acceleration_field(
+    struct swift_params* parameter_file, struct external_potential* potential) {
+#if defined(HAVE_HDF5)
+
+  /*! Acceleration field filename */
+  char filename[DESCRIPTION_BUFFER_SIZE];
+  
+  /* Read acceleration field file path */
+  parser_get_param_string(parameter_file, "RiverPotential:parameter_file", filename);
+
+  /* Load acceleration field data */
+
+  /* Open file */
+  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) error("Unable to open file %s", filename);
+
+  /* Read grid size and box size */
+
+  /* Open group */
+  hid_t group_id = H5Gopen(file_id, "Header", H5P_DEFAULT);
+  if (group_id < 0) error("unable to open group Header.\n");
+
+  /* Read the arrays */
+  io_read_array_attribute(group_id, "BoxSize", DOUBLE, potential->box_size, 2);
+  io_read_array_attribute(group_id, "GridSize", INT, potential->grid_size, 2);
+
+  /* Close group */
+  hid_t status = H5Gclose(group_id);
+  if (status < 0) error("error closing group.");
+
+  /* Allocate and read acceleration fields */
+  const int size = potential->grid_size[0] * potential->grid_size[1];
+  potential->ax = (float*)malloc(size * sizeof(float));
+  potential->ay = (float*)malloc(size * sizeof(float));
+  printf("size: %d\n", size);
+
+  /* Open group */
+  group_id = H5Gopen(file_id, "AccelerationField", H5P_DEFAULT);
+  if (group_id < 0) error("unable to open group AccelerationField.\n");
+
+  /* Read the datasets */
+  io_read_array_dataset(group_id, "ax", FLOAT, potential->ax, size);
+  io_read_array_dataset(group_id, "ay", FLOAT, potential->ay, size);
+
+  /* Close group */
+  status = H5Gclose(group_id);
+  if (status < 0) error("error closing group.");
+
+  /* Close file */
+  status = H5Fclose(file_id);
+  if (status < 0) error("error closing file.");
+
+#else
+  message("Cannot read the acceleration field without HDF5");
+#endif
+}
+
+/**
  * @brief Initialises the external potential properties in the internal system
  * of units.
  *
@@ -187,14 +236,17 @@ static INLINE void potential_init_backend(
     const struct unit_system* us, const struct space* s,
     struct external_potential* potential) {
 
-  /* Read in the position of the centre of potential */
-  parser_get_param_double_array(parameter_file, "RiverPotential:position", // northern and southern bank coordinatates
+  /* Read river banks position */
+  parser_get_param_double_array(parameter_file,
+                                "RiverPotential:position", // northern and southern bank coordinatates
                                 2, potential->y);
 
-  /* Read the other parameters of the model */
+  /* Read mass parameter */
   potential->mass =
       parser_get_param_double(parameter_file, "RiverPotential:mass");
 
+  /* Load acceleration field data */
+  geography_read_acceleration_field(parameter_file, potential);
 }
 
 /**
@@ -208,4 +260,26 @@ static INLINE void potential_print_backend(
   message("External potential is 'River'.");
 }
 
+/**
+ * @brief Cleans up the external potential by freeing allocated memory.
+ *
+ * @param potential The external potential to clean up.
+ */
+static INLINE void potential_cleanup_backend(
+  struct external_potential* potential) {
+
+#if defined(HAVE_HDF5)
+/* Free acceleration field arrays if they were allocated */
+if (potential->ax != NULL) {
+  free(potential->ax);
+  potential->ax = NULL;
+}
+
+if (potential->ay != NULL) {
+  free(potential->ay);
+  potential->ay = NULL;
+}
+#endif
+
+}
 #endif /* SWIFT_POTENTIAL_RIVER_H */

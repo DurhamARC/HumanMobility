@@ -89,8 +89,9 @@ enum engine_policy {
   engine_policy_sinks = (1 << 25),
   engine_policy_rt = (1 << 26),
   engine_policy_power_spectra = (1 << 27),
+  engine_policy_abm = (1 << 28),
 };
-#define engine_maxpolicy 28
+#define engine_maxpolicy 29
 extern const char *engine_policy_names[engine_maxpolicy + 1];
 
 /**

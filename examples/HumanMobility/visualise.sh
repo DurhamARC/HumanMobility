@@ -2,14 +2,15 @@
 
 rm images/*
 
-num_files=501
-min_x=3000
-max_x=7000
-min_y=3000
-max_y=7000
+num_files=407 #501
+min_x=0
+max_x=10000
+min_y=0
+max_y=10000
+type="gas"  # or "particles"
 
 # Plot the result
-python3 plot_velocity_parallel.py ${num_files} ${min_x} ${max_x} ${min_y} ${max_y}
+python3 plot_velocity_parallel.py ${num_files} ${min_x} ${max_x} ${min_y} ${max_y} ${type}
 python3 generate_GIF.py ${num_files}
 
 # This command sets:

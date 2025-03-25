@@ -12,7 +12,12 @@ plt.style.use("../../tools/stylesheets/mnras.mplstyle")
 import multiprocessing
 from functools import partial
 
-def process_file(i, min_x, max_x, min_y, max_y):
+def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
+
+    with h5py.File("river.hdf5", 'r') as sim:
+        mass = sim["/Header"].attrs["Mass"]
+
+    # Define the filename pattern for the HDF5 files and the PNG files
     filename_hdf5 = "data/humanMobility_%04d.hdf5" % i  # Adjust the filename pattern as needed
     filename_png = "images/humanMobility_%04d.png" % i
 
@@ -36,19 +41,23 @@ def process_file(i, min_x, max_x, min_y, max_y):
 
         # point_mass = sim["/Parameters"].attrs["PointMassPotential:mass"]
 
-        mass = sim["/Parameters"].attrs["RiverPotential:mass"]
-
         git = sim["Code"].attrs["Git Revision"]
 
-        pos = sim["/PartType1/Coordinates"][:, :]
+        # Use PartType0 for gas, PartType1 for particles
+        part_type = "PartType0" if _type == "gas" else "PartType1"
+        
+        pos = sim[f"/{part_type}/Coordinates"][:, :]
         x = pos[:, 0] - boxSize / 2
         y = pos[:, 1] - boxSize / 2
-        vel = sim["/PartType1/Velocities"][:, :]
+        vel = sim[f"/{part_type}/Velocities"][:, :]
         v_norm = np.sqrt(vel[:, 0] ** 2 + vel[:, 1] ** 2)
-        # rho = sim["/PartType0/Densities"][:]
-        # u = sim["/PartType0/InternalEnergies"][:]
-        # S = sim["/PartType0/Entropies"][:]
-        # P = sim["/PartType0/Pressures"][:]
+        # mass = sim["/UnusedParameters"].attrs["RiverPotential:mass"]
+        if _type == "gas":
+          rho = sim["/PartType0/Densities"][:]
+          u = sim["/PartType0/InternalEnergies"][:]
+          S = sim["/PartType0/Entropies"][:]
+          P = sim["/PartType0/Pressures"][:]
+
 
         X = pos[:, 0]
         Y = pos[:, 1]
@@ -71,6 +80,7 @@ def process_file(i, min_x, max_x, min_y, max_y):
         scale = max_M / desired_max_arrow_length
 
         # Plotting the velocity vectors using quiver
+
         # Create the plot
         fig, ax = plt.subplots()
         ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n \"river mass\"=%s" % (i, scale, mass))
@@ -127,9 +137,18 @@ if __name__ == '__main__':
     max_x = int(sys.argv[3])
     min_y = int(sys.argv[4])
     max_y = int(sys.argv[5])
+    _type = sys.argv[6]
+
+    if _type not in ["gas", "particles"]:
+        raise ValueError("type must be either 'gas' or 'particles'")
 
     # Create a partial function with fixed additional arguments
-    partial_process_file = partial(process_file, min_x=min_x, max_x=max_x, min_y=min_y, max_y=max_y)
+    partial_process_file = partial(process_file,
+                                   min_x=min_x,
+                                   max_x=max_x,
+                                   min_y=min_y,
+                                   max_y=max_y,
+                                   _type=_type)
 
     file_indices = list(range(num_files))
 

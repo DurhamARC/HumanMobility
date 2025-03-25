@@ -15,6 +15,7 @@ make clean
 echo "#############################"
 echo "# Running './configure' ... #"
 echo "#############################"
+export CFLAGS="-fsanitize=address -g"
 ./configure CC=gcc \
 	    LDFLAGS=-L${LOCAL_LIBRARY_PATH} \
 	    --enable-mpi \
@@ -26,6 +27,9 @@ echo "#############################"
 		--with-abm=human-mobility \
 		--with-ext-potential=human-mobility \
 	    --with-hm=river
+
+	    # --with-hm=random-walk
+
 
 echo "########################################"
 echo "# Running 'make -j\$(nproc --all)' ... #"

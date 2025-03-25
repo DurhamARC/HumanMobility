@@ -3,6 +3,7 @@
 
 # Remove previously generated data and images to regenerate the new ones
 rm humans.hdf5
+rm river.hdf5
 rm data/*
 #rm images/*
 
@@ -10,15 +11,16 @@ rm data/*
 if [ ! -e humans.hdf5 ]
 then
     echo "Generating initial conditions for the human mobility box example..."
-    python3 makeIC.py -f humans.hdf5  #make_hdf5.py
+    python3 makeIC.py -t gas -f humans.hdf5  # -t particles
 fi
 
 # Generate acceleration field for river
-if [ ! -e data/river.hdf5 ]
+if [ ! -e river.hdf5 ]
 then
     echo "Generating acceleration field for the river..."
-    python3 makeRiver.py -f data/river.hdf5
+    python3 makeRiver.py -f river.hdf5
 fi
 
 # Run SWIFT
-swift -g --threads=4 -n 10000 humanMobility.yml
+# gdb --args swift -g --threads=4 -n 10000 humanMobility.yml # -A -s
+swift -A -s -g -G --threads=4 -n 10000 humanMobility.yml #
