@@ -92,15 +92,6 @@ __attribute__((always_inline)) INLINE static void bilinear_interpolation(
 
 
 /**
- * @brief Check if a human is in the river (between the banks for a given position (x, y)).
- *
- * @param 
- */
-__attribute__((always_inline)) INLINE static void check_human_in_river( ) {
-
-}
-
-/**
  * @brief A utility to advance random walk of a human.
  *
  * @param h The human.
