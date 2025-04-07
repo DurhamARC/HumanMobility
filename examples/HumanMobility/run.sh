@@ -23,4 +23,5 @@ fi
 
 # Run SWIFT
 # gdb --args swift -g --threads=4 -n 10000 humanMobility.yml # -A -s
-swift -A -s -g -G --threads=4 -n 10000 humanMobility.yml #
+#time swift --hm-river --hm-randomwalk --threads=8 -n 10000 humanMobility.yml # -A -s -g -G 
+time mpirun -n 2 swift_mpi -A -s -g -G --hm-river --hm-randomwalk --threads=4 -n 50000 humanMobility.yml #

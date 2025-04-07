@@ -13,7 +13,7 @@ box_size = [10000., 10000.]  # meters
 river_y = [5010., 5090.]     # river banks y-coordinates
 river_width = river_y[1] - river_y[0]
 river_center = np.mean(river_y)
-mass = 1e6                 # "mass" of the river
+mass = 1e5                 # "mass" of the river
 distance = 1.0          # minimal distance from the river
 
 # Grid parameters

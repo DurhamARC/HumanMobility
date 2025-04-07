@@ -16,6 +16,12 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
 
     with h5py.File("river.hdf5", 'r') as sim:
         mass = sim["/Header"].attrs["Mass"]
+        box_size = sim["/Header"].attrs["BoxSize"]  # Add this line
+        
+        # Create horizontal lines for river banks across the full width
+        x_bank = np.array([0, box_size[0]])  # Full width of box
+        y_north = np.array([5090., 5090.])   # Northern bank
+        y_south = np.array([5010., 5010.])   # Southern bank
 
     # Define the filename pattern for the HDF5 files and the PNG files
     filename_hdf5 = "data/humanMobility_%04d.hdf5" % i  # Adjust the filename pattern as needed
@@ -85,6 +91,10 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         fig, ax = plt.subplots()
         ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n \"river mass\"=%s" % (i, scale, mass))
 
+        # Plot river banks before quiver plot
+        ax.plot(x_bank, y_north, '-', color='0.8', linewidth=0.2)  # 0.8 = light gray
+        ax.plot(x_bank, y_south, '-', color='0.8', linewidth=0.2)
+        
         # Create the quiver plot
         Q = ax.quiver(
             X,              # X positions

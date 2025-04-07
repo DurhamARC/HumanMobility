@@ -26,7 +26,7 @@ export CFLAGS="-fsanitize=address -g"
 	    --with-hydro-dimension=2 \
 		--with-abm=human-mobility \
 		--with-ext-potential=human-mobility \
-	    --with-hm=river
+	    --with-hm=all
 
 	    # --with-hm=random-walk
 

@@ -2,11 +2,11 @@
 
 rm images/*
 
-num_files=407 #501
-min_x=0
-max_x=10000
-min_y=0
-max_y=10000
+num_files=101
+min_x=4000
+max_x=6000
+min_y=4000
+max_y=6000
 type="gas"  # or "particles"
 
 # Plot the result
@@ -19,7 +19,7 @@ python3 generate_GIF.py ${num_files}
 # - The total number of frames to 75 (covering humanMobility_0000.png to humanMobility_0074.png).
 # - The output video format to H.264 with yuv420p pixel format for broader compatibility.
 
-ffmpeg -framerate 20 \
+ffmpeg -framerate 50 \
        -start_number 0 \
        -i images/humanMobility_%04d.png \
        -frames:v ${num_files} \
