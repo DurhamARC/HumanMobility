@@ -20,8 +20,8 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         
         # Create horizontal lines for river banks across the full width
         x_bank = np.array([0, box_size[0]])  # Full width of box
-        y_north = np.array([5090., 5090.])   # Northern bank
-        y_south = np.array([5010., 5010.])   # Southern bank
+        y_north = np.array([5080., 5080.])   # Northern bank
+        y_south = np.array([5020., 5020.])   # Southern bank
 
     # Define the filename pattern for the HDF5 files and the PNG files
     filename_hdf5 = "data/humanMobility_%04d.hdf5" % i  # Adjust the filename pattern as needed
