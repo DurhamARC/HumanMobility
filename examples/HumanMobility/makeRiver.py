@@ -26,25 +26,24 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
     dy_left = y - left_bank_y[0]  # y-coordinate is constant for each bank
     dy_right = y - right_bank_y[0]
     
-    # Inside river check
-    if abs(dy_left) < distance and abs(dy_right) < distance:
-        return 0.0, 0.0
-    
     # Calculate acceleration
     ax = 0.0
     ay = 0.0
     
-    # Determine closest bank and calculate acceleration
-    if abs(dy_left) < abs(dy_right):
-        # Closer to left bank
-        r = max(abs(dy_left), distance)
-        rinv3 = 1.0 / (r * r * r)
-        ay = mass * dy_left * rinv3
-    else:
-        # Closer to right bank
-        r = max(abs(dy_right), distance)
-        rinv3 = 1.0 / (r * r * r)
-        ay = mass * dy_right * rinv3
+    # Inside the river
+    if abs(dy_left) < distance and abs(dy_right) < distance:
+        # Determine closest bank and calculate acceleration
+        if abs(dy_left) < abs(dy_right):
+            # Closer to left bank
+            r = max(abs(dy_left), distance)
+            rinv3 = 1.0 / (r * r * r)
+            ay = mass * dy_left * rinv3
+        else:
+            # Closer to right bank
+            r = max(abs(dy_right), distance)
+            rinv3 = 1.0 / (r * r * r)
+            ay = mass * dy_right * rinv3
+# dy = distance if y >= river_center else -distance
     
     return ax, ay
 
