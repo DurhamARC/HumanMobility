@@ -69,6 +69,6 @@ Gravity:
 #   # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition
 
 RiverPotential:
-  position:        [5010., 5090.]  # y-coordinates of the river banks (internal units)
-  mass:     1e6  # "Mass" of the "river" (internal units)
+#  position:        [5010., 5090.]  # y-coordinates of the river banks (internal units)
+#  mass:     1e6  # "Mass" of the "river" (internal units)
   parameter_file:  river.hdf5 # Path to acceleration field HDF5 file

@@ -8,7 +8,7 @@ def generate_river(box_size, river_width=60.0):
     
     # Generate river centerline (straight line from west to east)
     x_center = np.linspace(0, box_size[0], 1000)
-    y_center = np.ones_like(x_center) * box_size[1]/2
+    y_center = np.ones_like(x_center) * 5050.0  # Changed from box_size[1]/2 to 5050
     
     # Generate river banks by offsetting from centerline
     half_width = river_width / 2.0
