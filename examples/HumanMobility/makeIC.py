@@ -58,6 +58,7 @@ class Humans(object):
         v_x = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
         v_y = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
         v_z = np.zeros(self.nhumans)
+        # print("Velocity means:", v_x.mean(), v_y.mean(), v_z.mean())
 
         self.velocities = np.array([v_x, v_y, v_z]).T
 

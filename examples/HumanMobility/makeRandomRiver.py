@@ -2,49 +2,80 @@ import numpy as np
 import h5py as h5
 import argparse as ap
 from scipy.ndimage import gaussian_filter
+from scipy.interpolate import splprep, splev
 
-def generate_river(box_size, river_width=60.0):
-    """Generate a horizontal river with constant width"""
+def generate_meandering_river(box_size, num_control_points=8, river_width=60.0, randomness=0.15):
+    """Generate a meandering river using control points and spline interpolation"""
     
-    # Generate river centerline (straight line from west to east)
-    x_center = np.linspace(0, box_size[0], 1000)
-    y_center = np.ones_like(x_center) * box_size[1]/2
+    # Generate random control points for river centerline
+    # Start from left side (west)
+    x_controls = np.linspace(0, box_size[0], num_control_points)
     
-    # Generate river banks by offsetting from centerline
+    # Add random vertical displacement to control points (keeping ends fixed)
+    y_controls = np.zeros(num_control_points)
+    y_controls[1:-1] = box_size[1]/2 + randomness * box_size[1] * np.random.randn(num_control_points-2)
+    y_controls[0] = box_size[1]/2  # Fix start point
+    y_controls[-1] = box_size[1]/2  # Fix end point
+    
+    # Fit a spline through control points
+    tck, u = splprep([x_controls, y_controls], s=0, k=3)
+    
+    # Generate points along the spline for smooth river
+    t_fine = np.linspace(0, 1, 1000)
+    x_center, y_center = splev(t_fine, tck)
+    
+    # Calculate tangent vectors along the river
+    dx = np.gradient(x_center)
+    dy = np.gradient(y_center)
+    
+    # Normalize tangent vectors
+    norm = np.sqrt(dx*dx + dy*dy)
+    dx /= norm
+    dy /= norm
+    
+    # Calculate normal vectors (perpendicular to tangent)
+    normal_x = -dy
+    normal_y = dx
+    
+    # Generate river banks by offsetting perpendicular to centerline
     half_width = river_width / 2.0
-    left_bank_x = x_center
-    left_bank_y = y_center - half_width
-    right_bank_x = x_center
-    right_bank_y = y_center + half_width
+    left_bank_x = x_center - normal_x * half_width
+    left_bank_y = y_center - normal_y * half_width
+    right_bank_x = x_center + normal_x * half_width
+    right_bank_y = y_center + normal_y * half_width
     
     return x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y
 
 def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, right_bank_y, mass, distance):
     """Calculate acceleration at point (x,y) due to river banks"""
     
-    # For horizontal river, we only need y-distances
-    dy_left = y - left_bank_y[0]  # y-coordinate is constant for each bank
-    dy_right = y - right_bank_y[0]
+    # Find distances to nearest points on both banks
+    left_dists = np.sqrt((x - left_bank_x)**2 + (y - left_bank_y)**2)
+    right_dists = np.sqrt((x - right_bank_x)**2 + (y - right_bank_y)**2)
     
-    # Inside river check
-    if abs(dy_left) < distance and abs(dy_right) < distance:
+    min_left_dist = np.min(left_dists)
+    min_right_dist = np.min(right_dists)
+    
+    # Inside river check (if point is closer than distance to both banks)
+    if min_left_dist < distance and min_right_dist < distance:
         return 0.0, 0.0
     
-    # Calculate acceleration
+    # Calculate acceleration from both banks
     ax = 0.0
     ay = 0.0
     
-    # Determine closest bank and calculate acceleration
-    if abs(dy_left) < abs(dy_right):
-        # Closer to left bank
-        r = max(abs(dy_left), distance)
+    # Add contribution from nearest points on both banks
+    for bank_x, bank_y, dists in [(left_bank_x, left_bank_y, left_dists),
+                                 (right_bank_x, right_bank_y, right_dists)]:
+        idx = np.argmin(dists)
+        r = max(dists[idx], distance)
+        
+        dx = x - bank_x[idx]
+        dy = y - bank_y[idx]
         rinv3 = 1.0 / (r * r * r)
-        ay = mass * dy_left * rinv3
-    else:
-        # Closer to right bank
-        r = max(abs(dy_right), distance)
-        rinv3 = 1.0 / (r * r * r)
-        ay = mass * dy_right * rinv3
+        
+        ax += mass * dx * rinv3
+        ay += mass * dy * rinv3
     
     return ax, ay
 
@@ -68,9 +99,9 @@ def main():
     # Grid parameters
     grid_size = [1001, 1001]     # number of cells + 1
     
-    # Generate straight river
+    # Generate meandering river
     x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y = \
-        generate_river(box_size, river_width=river_width)
+        generate_meandering_river(box_size, river_width=river_width)
     
     # Create acceleration field arrays
     ax = np.zeros(grid_size, dtype=np.float32)
@@ -118,7 +149,7 @@ def main():
         f["Header"].attrs["Mass"] = np.array(mass, dtype=np.float64)
         f["Header"].attrs["Distance"] = np.array(distance, dtype=np.float64)
         f["Header"].attrs["RiverWidth"] = np.array(river_width, dtype=np.float64)
-        f["Header"].attrs["RandomSeed"] = np.array(args.seed, dtype=np.int32)  # Add this line
+        f["Header"].attrs["RandomSeed"] = np.array(args.seed, dtype=np.int32)
 
 if __name__ == "__main__":
     main()

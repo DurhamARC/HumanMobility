@@ -16,12 +16,15 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
 
     with h5py.File("river.hdf5", 'r') as sim:
         mass = sim["/Header"].attrs["Mass"]
-        box_size = sim["/Header"].attrs["BoxSize"]  # Add this line
+        box_size = sim["/Header"].attrs["BoxSize"]
         
-        # Create horizontal lines for river banks across the full width
-        x_bank = np.array([0, box_size[0]])  # Full width of box
-        y_north = np.array([5080., 5080.])   # Northern bank
-        y_south = np.array([5020., 5020.])   # Southern bank
+        # Load river geometry from HDF5 file
+        left_bank_x = sim["/RiverGeometry/left_bank_x"][:]
+        left_bank_y = sim["/RiverGeometry/left_bank_y"][:]
+        right_bank_x = sim["/RiverGeometry/right_bank_x"][:]
+        right_bank_y = sim["/RiverGeometry/right_bank_y"][:]
+        center_x = sim["/RiverGeometry/centerline_x"][:]
+        center_y = sim["/RiverGeometry/centerline_y"][:]
 
     # Define the filename pattern for the HDF5 files and the PNG files
     filename_hdf5 = "data/humanMobility_%04d.hdf5" % i  # Adjust the filename pattern as needed
@@ -91,10 +94,11 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         fig, ax = plt.subplots()
         ax.set_title("Velocity map of human mobility %04d (scale=%07.2d)\n \"river mass\"=%s" % (i, scale, mass))
 
-        # Plot river banks before quiver plot
-        ax.plot(x_bank, y_north, '-', color='0.8', linewidth=0.2)  # 0.8 = light gray
-        ax.plot(x_bank, y_south, '-', color='0.8', linewidth=0.2)
-        
+        # Plot river banks and centerline
+        ax.plot(left_bank_x, left_bank_y, '-', color='0.8', linewidth=0.5, label='Left bank')
+        ax.plot(right_bank_x, right_bank_y, '-', color='0.8', linewidth=0.5, label='Right bank')
+        ax.plot(center_x, center_y, '--', color='0.6', linewidth=0.3, label='River center')
+
         # Create the quiver plot
         Q = ax.quiver(
             X,              # X positions
@@ -124,6 +128,9 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         cbar = fig.colorbar(Q, ax=ax, label='Velocity Magnitude')
 
         qk = ax.quiverkey(Q, 0.9, 0.9, 1, r'$1 \frac{m}{s}$', labelpos='E', coordinates='figure')
+        # Add legend if desired
+        ax.legend(loc='upper right', fontsize='x-small')
+
         # Add labels and formatting
         # plt.text(
         #     0.97, 0.97, "${\\rm{Velocity~vectors}}$",

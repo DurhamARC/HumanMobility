@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Remove previously generated data and images to regenerate the new ones
@@ -18,7 +17,7 @@ fi
 if [ ! -e river.hdf5 ]
 then
     echo "Generating acceleration field for the river..."
-    python3 makeRiver.py -f river.hdf5
+    python3 makeRiver.py -f river.hdf5 -s 42
 fi
 
 # Run SWIFT
