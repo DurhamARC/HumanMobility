@@ -3,10 +3,10 @@
 rm images/*
 
 num_files=501
-min_x=4000
-max_x=6000
-min_y=4900
-max_y=5200
+min_x=3000
+max_x=7000
+min_y=3000
+max_y=7000
 type="gas"  # or "particles"
 
 # Plot the result

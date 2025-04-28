@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 # River parameters (matching humanMobility.yml)
 box_size = [10000., 10000.]  # meters
-river_y = [5010., 5090.]     # river banks y-coordinates
+river_y = [5020., 5080.]     # river banks y-coordinates
 river_width = river_y[1] - river_y[0]
 river_center = np.mean(river_y)
 mass = 1e5                 # "mass" of the river
@@ -42,7 +42,7 @@ for i in range(grid_size[1]):
         dy = y - river_y[1]
     else:
         # Inside the river
-        dy = distance
+        dy = distance if y >= river_center else -distance
     
     # Calculate acceleration using inverse cube law (rinv3)
     r = np.sqrt(dy * dy)
