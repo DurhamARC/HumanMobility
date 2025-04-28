@@ -20,30 +20,58 @@ def generate_river(box_size, river_width=60.0):
     return x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y
 
 def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, right_bank_y, mass, distance):
-    """Calculate acceleration at point (x,y) due to river banks"""
+    """Calculate acceleration at point (x,y) due to river banks
+    
+    For horizontal river:
+    - Inside river: acceleration proportional to distance from centerline
+    - Within 'distance' from banks: acceleration proportional to distance constant
+    - Outside: acceleration proportional to actual distance from closest bank
+    """
     
     # For horizontal river, we only need y-distances
     dy_left = y - left_bank_y[0]  # y-coordinate is constant for each bank
     dy_right = y - right_bank_y[0]
+    river_center = (left_bank_y[0] + right_bank_y[0]) / 2.0
     
     # Calculate acceleration
     ax = 0.0
     ay = 0.0
     
-    # Inside the river
-    if abs(dy_left) < distance and abs(dy_right) < distance:
-        # Determine closest bank and calculate acceleration
+    # Inside river check
+    if dy_left >= 0 and dy_right <= 0:
+        # Inside river - acceleration proportional to distance from centerline
+        dy_center = y - river_center
+        r = distance  # Use constant distance for magnitude
+        rinv3 = 1.0 / (r * r * r)
+        # Direction away from centerline
+        ay = mass * np.sign(dy_center) * distance * rinv3
+    else:
+        # Outside river or near banks
+        # Find distance to closest bank
         if abs(dy_left) < abs(dy_right):
             # Closer to left bank
-            r = max(abs(dy_left), distance)
-            rinv3 = 1.0 / (r * r * r)
-            ay = mass * dy_left * rinv3
+            if abs(dy_left) <= distance:
+                # Within distance constant from bank - use constant force
+                r = distance
+                rinv3 = 1.0 / (r * r * r)
+                ay = mass * np.sign(dy_left) * distance * rinv3
+            else:
+                # Beyond distance constant - use actual distance
+                r = abs(dy_left)
+                rinv3 = 1.0 / (r * r * r)
+                ay = mass * dy_left * rinv3
         else:
             # Closer to right bank
-            r = max(abs(dy_right), distance)
-            rinv3 = 1.0 / (r * r * r)
-            ay = mass * dy_right * rinv3
-# dy = distance if y >= river_center else -distance
+            if abs(dy_right) <= distance:
+                # Within distance constant from bank - use constant force
+                r = distance
+                rinv3 = 1.0 / (r * r * r)
+                ay = mass * np.sign(dy_right) * distance * rinv3
+            else:
+                # Beyond distance constant - use actual distance
+                r = abs(dy_right)
+                rinv3 = 1.0 / (r * r * r)
+                ay = mass * dy_right * rinv3
     
     return ax, ay
 
