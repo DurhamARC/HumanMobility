@@ -17,10 +17,10 @@ fi
 if [ ! -e river.hdf5 ]
 then
     echo "Generating acceleration field for the river..."
-    python3 makeRiver.py -f river.hdf5 -s 42
+    python3 makeRandomRiver.py -f river.hdf5 -s 42
 fi
 
 # Run SWIFT
 # gdb --args swift -g --threads=4 -n 10000 humanMobility.yml # -A -s
 #time swift --hm-river --hm-randomwalk --threads=8 -n 10000 humanMobility.yml # -A -s -g -G 
-time mpirun -n 2 swift_mpi -A -s -g -G --hm-river --hm-randomwalk --threads=4 -n 50000 humanMobility.yml #
+time mpirun -n 4 swift_mpi -A -s -g -G --hm-river --hm-randomwalk --threads=4 -n 50000 humanMobility.yml #

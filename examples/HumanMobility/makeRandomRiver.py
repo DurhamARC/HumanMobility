@@ -47,35 +47,80 @@ def generate_meandering_river(box_size, num_control_points=8, river_width=60.0, 
     return x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y
 
 def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, right_bank_y, mass, distance):
-    """Calculate acceleration at point (x,y) due to river banks"""
+    """Calculate acceleration at point (x,y) due to river banks
     
-    # Find distances to nearest points on both banks
+    For meandering river:
+    - Inside river: acceleration proportional to distance from centerline
+    - Within 'distance' from banks: acceleration proportional to distance constant
+    - Outside: acceleration proportional to actual distance from closest bank
+    """
+    
+    # Find distances and closest points on both banks
     left_dists = np.sqrt((x - left_bank_x)**2 + (y - left_bank_y)**2)
     right_dists = np.sqrt((x - right_bank_x)**2 + (y - right_bank_y)**2)
     
-    min_left_dist = np.min(left_dists)
-    min_right_dist = np.min(right_dists)
+    left_idx = np.argmin(left_dists)
+    right_idx = np.argmin(right_dists)
+    min_left_dist = left_dists[left_idx]
+    min_right_dist = right_dists[right_idx]
     
-    # Inside river check (if point is closer than distance to both banks)
-    if min_left_dist < distance and min_right_dist < distance:
-        return 0.0, 0.0
+    # Calculate center point between closest bank points
+    center_x = (left_bank_x[left_idx] + right_bank_x[right_idx]) / 2
+    center_y = (left_bank_y[left_idx] + right_bank_y[right_idx]) / 2
     
-    # Calculate acceleration from both banks
+    # Calculate acceleration
     ax = 0.0
     ay = 0.0
     
-    # Add contribution from nearest points on both banks
-    for bank_x, bank_y, dists in [(left_bank_x, left_bank_y, left_dists),
-                                 (right_bank_x, right_bank_y, right_dists)]:
-        idx = np.argmin(dists)
-        r = max(dists[idx], distance)
-        
-        dx = x - bank_x[idx]
-        dy = y - bank_y[idx]
+    # Inside river check (if between banks)
+    if min_left_dist <= distance and min_right_dist <= distance:
+        # Inside river - acceleration proportional to distance from centerline
+        dx = x - center_x
+        dy = y - center_y
+        r = distance  # Use constant distance for magnitude
         rinv3 = 1.0 / (r * r * r)
-        
-        ax += mass * dx * rinv3
-        ay += mass * dy * rinv3
+        # Direction away from centerline
+        norm = np.sqrt(dx*dx + dy*dy)
+        if norm > 0:
+            ax = mass * (dx/norm) * distance * rinv3
+            ay = mass * (dy/norm) * distance * rinv3
+    else:
+        # Outside river or near banks
+        # Find closest bank
+        if min_left_dist < min_right_dist:
+            # Closer to left bank
+            dx = x - left_bank_x[left_idx]
+            dy = y - left_bank_y[left_idx]
+            if min_left_dist <= distance:
+                # Within distance constant from bank - use constant force
+                r = distance
+                rinv3 = 1.0 / (r * r * r)
+                norm = np.sqrt(dx*dx + dy*dy)
+                ax = mass * (dx/norm) * distance * rinv3
+                ay = mass * (dy/norm) * distance * rinv3
+            else:
+                # Beyond distance constant - use actual distance
+                r = min_left_dist
+                rinv3 = 1.0 / (r * r * r)
+                ax = mass * dx * rinv3
+                ay = mass * dy * rinv3
+        else:
+            # Closer to right bank
+            dx = x - right_bank_x[right_idx]
+            dy = y - right_bank_y[right_idx]
+            if min_right_dist <= distance:
+                # Within distance constant from bank - use constant force
+                r = distance
+                rinv3 = 1.0 / (r * r * r)
+                norm = np.sqrt(dx*dx + dy*dy)
+                ax = mass * (dx/norm) * distance * rinv3
+                ay = mass * (dy/norm) * distance * rinv3
+            else:
+                # Beyond distance constant - use actual distance
+                r = min_right_dist
+                rinv3 = 1.0 / (r * r * r)
+                ax = mass * dx * rinv3
+                ay = mass * dy * rinv3
     
     return ax, ay
 
