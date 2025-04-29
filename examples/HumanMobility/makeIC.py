@@ -108,10 +108,13 @@ class Humans(object):
         mass_table = np.zeros(6)
         mass_table[type_index] = self.humanmass
 
+        # type(boxsize)
+        print("boxsize:", float(boxsize))
+
         with h5.File(filename, "w") as handle:
             wg.write_header(
                 handle,
-                boxsize=[boxsize, boxsize],
+                boxsize=[float(boxsize), float(boxsize)],
                 flag_entropy=0,
                 np_total=np_total,
                 np_total_hw=np.array([0, 0, 0, 0, 0, 0]),

@@ -74,7 +74,7 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         V = vel[:, 1]
 
         # Plot the interesting quantities
-        plt.figure(figsize=(7, 7 / 1.6))
+        plt.figure(figsize=(20, 20 / 1.6))
 
         # Calculate the magnitude of the velocity vectors
         # vel_mag = np.sqrt(vel[:, 0]**2 + vel[:, 1]**2)

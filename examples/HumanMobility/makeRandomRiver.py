@@ -150,10 +150,10 @@ def main():
     np.random.seed(args.seed)
     
     # Parameters
-    box_size = [10000., 10000.]  # meters
-    mass = 1e5                    # "mass" of the river
+    box_size = [20000., 20000.]  # meters
+    mass = 1e4                    # "mass" of the river
     distance = 1.0                # minimal distance from river
-    river_width = 60.0           # width of the river
+    river_width = 200.0           # width of the river
     
     # Grid parameters
     grid_size = [1001, 1001]     # number of cells + 1
