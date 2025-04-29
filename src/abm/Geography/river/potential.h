@@ -42,7 +42,7 @@
 struct external_potential {
 
   /*! Position of the river (horizontal on the map) */
-  double y[2]; // the northern and southern bank of the river
+  // double y[2]; // the northern and southern bank of the river
 
   /*! Mass */
   double mass;
@@ -52,6 +52,13 @@ struct external_potential {
   float *ay;
   double box_size[2];
   int grid_size[2];
+  
+  /*! River geometry data */
+  float *left_bank_x;   // Left bank x-coordinates
+  float *left_bank_y;   // Left bank y-coordinates
+  float *right_bank_x;  // Right bank x-coordinates
+  float *right_bank_y;  // Right bank y-coordinates
+  int bank_points;      // Number of points defining each bank
 };
 
 
@@ -185,9 +192,10 @@ static INLINE void geography_read_acceleration_field(
   hid_t group_id = H5Gopen(file_id, "Header", H5P_DEFAULT);
   if (group_id < 0) error("unable to open group Header.\n");
 
-  /* Read the arrays */
+  /* Read box size, grid size and mass */
   io_read_array_attribute(group_id, "BoxSize", DOUBLE, potential->box_size, 2);
   io_read_array_attribute(group_id, "GridSize", INT, potential->grid_size, 2);
+  io_read_attribute(group_id, "Mass", DOUBLE, &potential->mass);
 
   /* Close group */
   hid_t status = H5Gclose(group_id);
@@ -210,6 +218,36 @@ static INLINE void geography_read_acceleration_field(
   /* Close group */
   status = H5Gclose(group_id);
   if (status < 0) error("error closing group.");
+
+  /* Open group for river geometry */
+  group_id = H5Gopen(file_id, "RiverGeometry", H5P_DEFAULT);
+  if (group_id < 0) error("unable to open group RiverGeometry.\n");
+
+  /* Get size of bank arrays */
+  hid_t dataset = H5Dopen(group_id, "left_bank_x", H5P_DEFAULT);
+  if (dataset < 0) error("unable to open dataset left_bank_x.\n");
+  hid_t space = H5Dget_space(dataset);
+  hsize_t dims[1];
+  H5Sget_simple_extent_dims(space, dims, NULL);
+  potential->bank_points = dims[0];
+  H5Sclose(space);
+  H5Dclose(dataset);
+
+  /* Allocate memory for river geometry */
+  potential->left_bank_x = (float*)malloc(potential->bank_points * sizeof(float));
+  potential->left_bank_y = (float*)malloc(potential->bank_points * sizeof(float));
+  potential->right_bank_x = (float*)malloc(potential->bank_points * sizeof(float));
+  potential->right_bank_y = (float*)malloc(potential->bank_points * sizeof(float));
+
+  /* Read river geometry datasets */
+  io_read_array_dataset(group_id, "left_bank_x", FLOAT, potential->left_bank_x, potential->bank_points);
+  io_read_array_dataset(group_id, "left_bank_y", FLOAT, potential->left_bank_y, potential->bank_points);
+  io_read_array_dataset(group_id, "right_bank_x", FLOAT, potential->right_bank_x, potential->bank_points);
+  io_read_array_dataset(group_id, "right_bank_y", FLOAT, potential->right_bank_y, potential->bank_points);
+
+  /* Close river geometry group */
+  status = H5Gclose(group_id);
+  if (status < 0) error("error closing RiverGeometry group.");
 
   /* Close file */
   status = H5Fclose(file_id);
@@ -236,16 +274,7 @@ static INLINE void potential_init_backend(
     const struct unit_system* us, const struct space* s,
     struct external_potential* potential) {
 
-  /* Read river banks position */
-  parser_get_param_double_array(parameter_file,
-                                "RiverPotential:position", // northern and southern bank coordinatates
-                                2, potential->y);
-
-  /* Read mass parameter */
-  potential->mass =
-      parser_get_param_double(parameter_file, "RiverPotential:mass");
-
-  /* Load acceleration field data */
+  /* Load acceleration field data and mass parameter */
   geography_read_acceleration_field(parameter_file, potential);
 }
 
@@ -278,6 +307,27 @@ if (potential->ax != NULL) {
 if (potential->ay != NULL) {
   free(potential->ay);
   potential->ay = NULL;
+}
+
+/* Free river geometry arrays if they were allocated */
+if (potential->left_bank_x != NULL) {
+  free(potential->left_bank_x);
+  potential->left_bank_x = NULL;
+}
+
+if (potential->left_bank_y != NULL) {
+  free(potential->left_bank_y);
+  potential->left_bank_y = NULL;
+}
+
+if (potential->right_bank_x != NULL) {
+  free(potential->right_bank_x);
+  potential->right_bank_x = NULL;
+}
+
+if (potential->right_bank_y != NULL) {
+  free(potential->right_bank_y);
+  potential->right_bank_y = NULL;
 }
 #endif
 
