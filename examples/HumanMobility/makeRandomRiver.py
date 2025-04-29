@@ -64,17 +64,29 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
     min_left_dist = left_dists[left_idx]
     min_right_dist = right_dists[right_idx]
     
-    # Calculate center point between closest bank points
-    center_x = (left_bank_x[left_idx] + right_bank_x[right_idx]) / 2
-    center_y = (left_bank_y[left_idx] + right_bank_y[right_idx]) / 2
-    
-    # Calculate acceleration
+    # Calculate vectors from banks to point
+    dx_left = x - left_bank_x[left_idx]
+    dy_left = y - left_bank_y[left_idx]
+    dx_right = x - right_bank_x[right_idx]
+    dy_right = y - right_bank_y[right_idx]
+
+    # Calculate normal vectors to check if point is between banks
+    normal_x = right_bank_x[right_idx] - left_bank_x[left_idx]
+    normal_y = right_bank_y[right_idx] - left_bank_y[left_idx]
+    norm = np.sqrt(normal_x*normal_x + normal_y*normal_y)
+    normal_x /= norm
+    normal_y /= norm
+
     ax = 0.0
     ay = 0.0
-    
+
     # Inside river check (if between banks)
-    if min_left_dist <= distance and min_right_dist <= distance:
+    dot_left = dx_left*normal_x + dy_left*normal_y
+    dot_right = dx_right*normal_x + dy_right*normal_y
+    if dot_left >= 0 and dot_right <= 0:  # This checks if point is between banks
         # Inside river - acceleration proportional to distance from centerline
+        center_x = (left_bank_x[left_idx] + right_bank_x[right_idx]) / 2
+        center_y = (left_bank_y[left_idx] + right_bank_y[right_idx]) / 2
         dx = x - center_x
         dy = y - center_y
         r = distance  # Use constant distance for magnitude
@@ -102,8 +114,9 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
                 # Beyond distance constant - use actual distance
                 r = min_left_dist
                 rinv3 = 1.0 / (r * r * r)
-                ax = mass * dx * rinv3
-                ay = mass * dy * rinv3
+                norm = np.sqrt(dx*dx + dy*dy)
+                ax = mass * (dx/norm) * r * rinv3
+                ay = mass * (dy/norm) * r * rinv3
         else:
             # Closer to right bank
             dx = x - right_bank_x[right_idx]
@@ -119,8 +132,9 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
                 # Beyond distance constant - use actual distance
                 r = min_right_dist
                 rinv3 = 1.0 / (r * r * r)
-                ax = mass * dx * rinv3
-                ay = mass * dy * rinv3
+                norm = np.sqrt(dx*dx + dy*dy)
+                ax = mass * (dx/norm) * r * rinv3
+                ay = mass * (dy/norm) * r * rinv3
     
     return ax, ay
 

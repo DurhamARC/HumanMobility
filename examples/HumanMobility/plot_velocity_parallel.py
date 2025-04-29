@@ -140,7 +140,7 @@ def process_file(i, min_x, max_x, min_y, max_y, _type="gas"):
         plt.ylabel("${\\rm{Position}}~y$", labelpad=0)
         plt.xlim(min_x, max_x)
         plt.ylim(min_y, max_y)
-        # plt.tight_layout()
+        plt.tight_layout()
 
         plt.savefig(filename_png, dpi=200)
         plt.close()
