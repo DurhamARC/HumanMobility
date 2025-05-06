@@ -18,7 +18,7 @@ fi
 if [ ! -e river.hdf5 ]
 then
     echo "Generating acceleration field for the river..."
-    python3 makeRandomRiver.py -b 10000 -g 1001 -f river.hdf5
+    python3 makeRandomRiver.py -b 10000 -g 1000 -f river.hdf5
 fi
 
 # Ensure all nodes can access the HDF5 files
