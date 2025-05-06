@@ -141,22 +141,27 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
 def main():
     # Parse arguments
     parser = ap.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, default="river.hdf5")
+    parser.add_argument("-f", "--file", type=str, default="river.hdf5",
+                       help="Output HDF5 file name")
     parser.add_argument("-s", "--seed", type=int, default=42,
                        help="Random seed for river generation")
+    parser.add_argument("-b", "--box-size", type=float, default=10000.,
+                       help="Box size in meters (square domain)")
+    parser.add_argument("-g", "--grid-size", type=int, default=1000,
+                       help="Number of grid cells in each dimension + 1")
     args = parser.parse_args()
     
     # Set random seed for reproducibility
     np.random.seed(args.seed)
     
     # Parameters
-    box_size = [20000., 20000.]  # meters
+    box_size = [args.box_size, args.box_size]  # square domain
     mass = 1e4                    # "mass" of the river
     distance = 1.0                # minimal distance from river
     river_width = 200.0           # width of the river
     
     # Grid parameters
-    grid_size = [1001, 1001]     # number of cells + 1
+    grid_size = [args.grid_size+1, args.grid_size+1]  # square grid
     
     # Generate meandering river
     x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y = \

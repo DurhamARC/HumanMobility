@@ -19,16 +19,17 @@ source ~/swift-env/bin/activate
 #PARMETIS_PATH=/usr/lib/x86_64-linux-gnu
 
 module purge
-# module load gnu_comp/14.1.0
-module load intel_comp/2024.2.0 compiler-rt tbb compiler
-module load openmpi/5.0.3
+module load intel_comp/2025.0.1 #intel_comp/2024.2.0
+module load umf compiler-rt tbb compiler mpi
+# module load openmpi/5.0.3
+module load python
 module load fftw/3.3.10
 module load gsl
 module load parmetis/4.0.3-64bit
 module load parallel_hdf5/1.14.4
 module load sundials/5.8.0_c8_single
 module load ffmpeg
-module load python
+# module load likwid/5.4.1
 
 # Set number of threads for make
 export MAKEFLAGS="-j$SLURM_CPUS_PER_TASK"
@@ -43,11 +44,13 @@ make clean
 echo "#############################"
 echo "# Running './configure' ... #"
 echo "#############################"
+# /configure --prefix=/cosma/home/do009/dc-niko3/.local/ \
 #export CFLAGS="-fsanitize=address -g"
-./configure --prefix=/cosma/home/do009/dc-niko3/.local/ \
+./configure --prefix=/cosma5/data/durham/dc-niko3/.local/ \
+		CFLAGS="-Wno-error=gnu-folding-constant" \
 	    LDFLAGS=\
+		--enable-debug \
 	    --enable-mpi \
-		--enable-ipo \
 	    --enable-parallel-hdf5 \
 		--with-tbbmalloc \
 	    --with-parmetis \
@@ -57,6 +60,7 @@ echo "#############################"
 		--with-ext-potential=human-mobility \
 	    --with-hm=all
 
+		# --enable-ipo \
 	    # --with-hm=random-walk
 
 

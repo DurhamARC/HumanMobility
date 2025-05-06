@@ -18,7 +18,7 @@ Snapshots:
   subdir:              data
   basename:            humanMobility # Common part of the name of output files
   time_first:          0.         # Time of the first output (in internal units)
-  delta_time:          1e-2 #1440        # Time difference between consecutive outputs (in internal units)
+  delta_time:          1.0 #1e-2 #1440        # Time difference between consecutive outputs (in internal units)
 
 # Parameters governing the conserved quantities statistics
 Statistics:
@@ -30,9 +30,9 @@ SPH:
   CFL_condition:         0.1      # Courant-Friedrich-Levy condition for time integration.
 
 Scheduler:
-  max_top_level_cells: 3
+  max_top_level_cells: 16
   tasks_per_cell: 64
-  # links_per_tasks: 512
+  # links_per_tasks: 1024
 
 # Parameters related to the initial conditions
 InitialConditions:
