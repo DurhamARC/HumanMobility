@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --ntasks=16             # Total number of MPI tasks (cores) (max 32)
+#SBATCH --ntasks=8             # Total number of MPI tasks (cores) (max 32)
 #SBATCH --nodes=1               # Number of nodes
-#SBATCH --ntasks-per-node=16    # MPI tasks per node (max 32)
+#SBATCH --ntasks-per-node=8    # MPI tasks per node (max 32)
 #SBATCH --cpus-per-task=16      # CPU cores per MPI rank
 #SBATCH --mem=32G               # Memory per node
 #SBATCH -p cosma5               # COSMA5 partition

@@ -24,12 +24,19 @@ fi
 # Ensure all nodes can access the HDF5 files
 #sync
 #sleep 2  # Give filesystem time to sync
-
 # ulimit -s unlimited
 
-# Run SWIFT
+# Run SWIFT with SLURM environment variables
+# SLURM_NTASKS = total number of MPI tasks
+# SLURM_CPUS_PER_TASK = number of threads per MPI task
+mpirun -np $SLURM_NTASKS swift_mpi --threads=$SLURM_CPUS_PER_TASK \
+    -A -s -g -G \
+    --hm-river \
+    --hm-randomwalk \
+    -n 10000 \
+    humanMobility.yml
+
 # gdb --args swift -g --threads=4 -n 10000 humanMobility.yml # -A -s
 # swift --hm-river --hm-randomwalk --threads=8 -n 1000 humanMobility.yml # -A -s -g -G 
-mpirun -np 8 swift_mpi --threads=16 -A -s -g -G --hm-river --hm-randomwalk -n 10000 humanMobility.yml #--bind-to none 
 # likwid-perfctr -f -C 0 -g MEMREAD swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml # -A -s -g -G
 # likwid-perfctr -a
