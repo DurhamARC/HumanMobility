@@ -7,7 +7,7 @@
 #SBATCH -J sw-build              # Job name
 #SBATCH -o sw.out               # Output file
 #SBATCH -e sw.err               # Error file
-#SBATCH -p cosma5               # COSMA5 partition
+#SBATCH -p cosma               # COSMA5 partition
 #SBATCH -A durham               # Account
 #SBATCH -t 0:30:00             # Increased time for compilation
 
@@ -29,7 +29,7 @@ module load parmetis/4.0.3-64bit
 module load parallel_hdf5/1.14.4
 module load sundials/5.8.0_c8_single
 module load ffmpeg
-# module load likwid/5.4.1
+module load likwid/5.4.1
 
 # Set number of threads for make
 export MAKEFLAGS="-j$SLURM_CPUS_PER_TASK"
@@ -47,18 +47,19 @@ echo "#############################"
 # /configure --prefix=/cosma/home/do009/dc-niko3/.local/ \
 #export CFLAGS="-fsanitize=address -g"
 ./configure --prefix=/cosma5/data/durham/dc-niko3/.local/ \
-		CFLAGS="-Wno-error=gnu-folding-constant" \
-	    LDFLAGS=\
-		--enable-debug \
-	    --enable-mpi \
-	    --enable-parallel-hdf5 \
-		--with-tbbmalloc \
-	    --with-parmetis \
-	    --with-hydro=abm \
-	    --with-hydro-dimension=2 \
-		--with-abm=human-mobility \
-		--with-ext-potential=human-mobility \
-	    --with-hm=all
+    --program-suffix=_intel2025 \
+    CFLAGS="-Wno-error=gnu-folding-constant" \
+    LDFLAGS= \
+    --enable-debug \
+    --enable-mpi \
+    --enable-parallel-hdf5 \
+    --with-tbbmalloc \
+    --with-parmetis \
+    --with-hydro=abm \
+    --with-hydro-dimension=2 \
+    --with-abm=human-mobility \
+    --with-ext-potential=human-mobility \
+    --with-hm=all
 
 		# --enable-ipo \
 	    # --with-hm=random-walk
