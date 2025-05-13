@@ -19,132 +19,145 @@ likwid-bench -t triad -W S0:2GB:1
 ```
 ```
 ====
-Starting job 8113868 at Thu  1 May 14:04:59 BST 2025 for user dc-niko3.
-Running on nodes: m5002
-====
-Allocate: Process running on hwthread 91 (Domain S0) - Vector length 62500000/500000000 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain S0) - Vector length 62500000/500000000 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain S0) - Vector length 62500000/500000000 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain S0) - Vector length 62500000/500000000 Offset 0 Alignment 512
---------------------------------------------------------------------------------
+Starting job ... 
+...
 LIKWID MICRO BENCHMARK
 Test: triad
---------------------------------------------------------------------------------
+...
 Using 1 work groups
 Using 1 threads
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-Group: 0 Thread 0 Global Thread 0 running on hwthread 91 - Vector length 62500000 Offset 0
---------------------------------------------------------------------------------
-Cycles:                 4158690300
-CPU Clock:              2249973589
-Cycle Clock:            2249973589
-Time:                   1.848328e+00 sec
-Iterations:             32
-Iterations per thread:  32
+...
+Cycles:                 3591308877
+CPU Clock:              2599987191
+Cycle Clock:            2599987191
+Time:                   1.381279e+00 sec
+Iterations:             10
+Iterations per thread:  10
 Inner loop executions:  15625000
 Size (Byte):            2000000000
 Size per thread:        2000000000
-Number of Flops:        4000000000
-MFlops/s:               2164.12
-Data volume (Byte):     64000000000
-MByte/s:                34625.88
-Cycles per update:      2.079345
-Cycles per cacheline:   16.634761
+Number of Flops:        1250000000
+MFlops/s:               904.96
+Data volume (Byte):     20000000000
+MByte/s:                14479.33
+Cycles per update:      5.746094
+Cycles per cacheline:   45.968754
 Loads per update:       3
 Stores per update:      1
 Load bytes per element: 24
 Store bytes per elem.:  8
 Load/store ratio:       3.00
-Instructions:           9500000016
-UOPs:                   15000000000
+Instructions:           2968750016
+UOPs:                   4687500000
 --------------------------------------------------------------------------------
 ```
 
 ### Memory bandwidth (MByte/s) on a full node
 ```
-likwid-bench -t triad -W N:2GB:128
+likwid-bench -t triad -W N:2GB:16
 ```
 ```
 ====
-Starting job 8113873 at Thu  1 May 14:08:55 BST 2025 for user dc-niko3.
-Running on nodes: m5002
-====
-Warning: Sanitizing vector length to a multiple of the loop stride 4 and thread count 128 from 62500000 elements (500000000 bytes) to 62499840 elements (499998720 bytes)
-Allocate: Process running on hwthread 91 (Domain N) - Vector length 62499840/499998720 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain N) - Vector length 62499840/499998720 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain N) - Vector length 62499840/499998720 Offset 0 Alignment 512
-Allocate: Process running on hwthread 91 (Domain N) - Vector length 62499840/499998720 Offset 0 Alignment 512
-Initialization: Each thread in domain initializes its own stream chunks
---------------------------------------------------------------------------------
+Starting job ...
+...
 LIKWID MICRO BENCHMARK
 Test: triad
---------------------------------------------------------------------------------
-Using 1 work groups
-Using 128 threads
---------------------------------------------------------------------------------
 ...
---------------------------------------------------------------------------------
-Cycles:                 438323588617
-CPU Clock:              2249977234
-Cycle Clock:            2249977234
-Time:                   1.948125e+02 sec
-Iterations:             524288
-Iterations per thread:  4096
-Inner loop executions:  122070
-Size (Byte):            1999994880
-Size per thread:        15624960
-Number of Flops:        511998689280
-MFlops/s:               2628.16
-Data volume (Byte):     8191979028480
-MByte/s:                42050.59
-Cycles per update:      1.712206
-Cycles per cacheline:   13.697647
+Using 1 work groups
+Using 16 threads
+...
+Cycles:                 25008707817
+CPU Clock:              2599930277
+Cycle Clock:            2599930277
+Time:                   9.618992e+00 sec
+Iterations:             2048
+Iterations per thread:  128
+Inner loop executions:  976562
+Size (Byte):            1999998976
+Size per thread:        124999936
+Number of Flops:        15999991808
+MFlops/s:               1663.38
+Data volume (Byte):     255999868928
+MByte/s:                26614.00
+Cycles per update:      3.126090
+Cycles per cacheline:   25.008721
 Loads per update:       3
 Stores per update:      1
 Load bytes per element: 24
 Store bytes per elem.:  8
 Load/store ratio:       3.00
-Instructions:           1215996887056
-UOPs:                   1919995084800
+Instructions:           37999980560
+UOPs:                   59999969280
 --------------------------------------------------------------------------------
 ```
 
-### Peak floating-point performance (FLOPS) on single core
+### Peak floating-point performance (MFLOPS) on a single core
 ```
 likwid-bench -t peakflops -w S0:10000MB:1
 ```
 ```
 ====
-Starting job 8113854 at Thu  1 May 14:01:16 BST 2025 for user dc-niko3.
-Running on nodes: m5002
-====
-Allocate: Process running on hwthread 91 (Domain S0) - Vector length 1250000000/10000000000 Offset 0 Alignment 512
---------------------------------------------------------------------------------
+Starting job ...
+...
 LIKWID MICRO BENCHMARK
 Test: peakflops
---------------------------------------------------------------------------------
+...
 Using 1 work groups
 Using 1 threads
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-Group: 0 Thread 0 Global Thread 0 running on hwthread 91 - Vector length 1250000000 Offset 0
---------------------------------------------------------------------------------
-Cycles:                 55109423925
-CPU Clock:              2249976828
-Cycle Clock:            2249976828
-Time:                   2.449333e+01 sec
+...
+Cycles:                 105343024434
+CPU Clock:              2599963429
+Cycle Clock:            2599963429
+Time:                   4.051712e+01 sec
 Iterations:             10
 Iterations per thread:  10
 Inner loop executions:  1250000000
 Size (Byte):            10000000000
 Size per thread:        10000000000
 Number of Flops:        200000000000
-MFlops/s:               8165.49
+MFlops/s:               4936.19
 Data volume (Byte):     100000000000
-MByte/s:                4082.74
-Cycles per update:      4.408754
-Cycles per cacheline:   35.270031
+MByte/s:                2468.09
+Cycles per update:      8.427442
+Cycles per cacheline:   67.419536
+Loads per update:       1
+Stores per update:      0
+Load bytes per element: 8
+Store bytes per elem.:  0
+Instructions:           250000000032
+UOPs:                   237500000000
+--------------------------------------------------------------------------------
+```
+
+### Peak floating-point performance (MFLOPS) on a full node
+```
+likwid-bench -t peakflops -w N:10000MB:16
+```
+```
+====
+Starting job ...
+...
+LIKWID MICRO BENCHMARK
+Test: peakflops
+...
+Using 1 work groups
+Using 16 threads
+...
+Cycles:                 11756247712
+CPU Clock:              2599984198
+Cycle Clock:            2599984198
+Time:                   4.521661e+00 sec
+Iterations:             160
+Iterations per thread:  10
+Inner loop executions:  78125000
+Size (Byte):            10000000000
+Size per thread:        625000000
+Number of Flops:        200000000000
+MFlops/s:               44231.53
+Data volume (Byte):     100000000000
+MByte/s:                22115.77
+Cycles per update:      0.940500
+Cycles per cacheline:   7.523999
 Loads per update:       1
 Stores per update:      0
 Load bytes per element: 8
@@ -192,14 +205,6 @@ Group 1: MEM
 |      CAS_COUNT_WR     |  MBOX6C1 |      1830926 |
 |      CAS_COUNT_RD     |  MBOX7C0 |      2019975 |
 |      CAS_COUNT_WR     |  MBOX7C1 |      1867911 |
-|      CAS_COUNT_RD     |  MBOX8C0 |       -      |
-|      CAS_COUNT_WR     |  MBOX8C1 |       -      |
-|      CAS_COUNT_RD     |  MBOX9C0 |       -      |
-|      CAS_COUNT_WR     |  MBOX9C1 |       -      |
-|      CAS_COUNT_RD     | MBOX10C0 |       -      |
-|      CAS_COUNT_WR     | MBOX10C1 |       -      |
-|      CAS_COUNT_RD     | MBOX11C0 |       -      |
-|      CAS_COUNT_WR     | MBOX11C1 |       -      |
 +-----------------------+----------+--------------+
 
 +-----------------------------------+------------+
@@ -221,12 +226,11 @@ Group 1: MEM
 ##### 1000 x 1000 humans on 100 x 100 km for minimum(100 steps, 10 minutes):
 ```
 likwid-perfctr -f -C 0 -g MEM swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
-
 ```
 ```
---------------------------------------------------------------------------------                                                 
-Group 1: MEM                                                                              
-+-----------------------+----------+----------------
+--------------------------------------------------------------------------------
+Group 1: MEM
++-----------------------+----------+----------------+
 |         Event         |  Counter |   HWThread 0   |
 +-----------------------+----------+----------------+
 |   INSTR_RETIRED_ANY   |   FIXC0  | 10078700900771 |
@@ -249,14 +253,6 @@ Group 1: MEM
 |      CAS_COUNT_WR     |  MBOX6C1 |      198253434 |
 |      CAS_COUNT_RD     |  MBOX7C0 |      296656051 |
 |      CAS_COUNT_WR     |  MBOX7C1 |      198468244 |
-|      CAS_COUNT_RD     |  MBOX8C0 |        -       |
-|      CAS_COUNT_WR     |  MBOX8C1 |        -       |
-|      CAS_COUNT_RD     |  MBOX9C0 |        -       |
-|      CAS_COUNT_WR     |  MBOX9C1 |        -       |
-|      CAS_COUNT_RD     | MBOX10C0 |        -       |
-|      CAS_COUNT_WR     | MBOX10C1 |        -       |
-|      CAS_COUNT_RD     | MBOX11C0 |        -       |
-|      CAS_COUNT_WR     | MBOX11C1 |        -       |
 +-----------------------+----------+----------------+
 
 +-----------------------------------+------------+
@@ -315,7 +311,7 @@ Group 1: FLOPS_DP
 
 ##### 1000 x 1000 humans on 100 x 100 km for minimum(100 steps, 10 minutes):
 ```
-likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml # -A -s -g -G
+likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
 ```
 ```
 --------------------------------------------------------------------------------
@@ -378,30 +374,30 @@ Group 1: FLOPS_DP
 
 | Metric         | SWIFT (best case) | likwid-bench triad | Ratio      |
 |----------------|------------------|--------------------|------------|
-| Memory BW      | 205.97 MB/s      | 34,625.88 MB/s     | ~0.6%      |
+| Memory BW      | 205.97 MB/s      | 26614.00 MB/s      | ~0.77%     |
 | Read/Write Ratio | 1.1:1          | 3:1                | Lower      |
-| CPI            | 0.4615           | 2.079              | ~4.5x better |
+| CPI            | 0.4615           | 3.13               | ~6.8x better |
 
 ---
 
 3. **Comparison with `likwid-bench peakflops`**
 
-| Metric         | SWIFT (best case) | likwid-bench peakflops | Ratio      |
-|----------------|------------------|------------------------|------------|
-| MFLOP/s        | 177.26           | 8165.49                | ~2.17%     |
-| Vectorization  | 62.25%           | ~100%                  | ~0.62x     |
-| CPI            | 0.4629           | ~4.41                  | ~9.5x better |
+| Metric         | SWIFT (best case) | likwid-bench peakflops (single core) | likwid-bench peakflops (full node) | Ratio (single core) | Ratio (full node) |
+|----------------|------------------|--------------------------------------|------------------------------------|---------------------|-------------------|
+| MFLOP/s        | 177.26           | 4936.19                              | 44231.53                           | ~3.6%               | ~0.4%             |
+| Vectorization  | 62.25%           | ~100%                                | ~100%                              | ~0.62x              | ~0.62x            |
+| CPI            | 0.4629           | 8.43                                 | 0.94                               | ~18x better         | ~2x better        |
 
 ---
 
 **Summary Table**
 
-| Metric                | SWIFT (large, best case) | triad             | peakflops         |
-|-----------------------|-------------------------|-------------------|-------------------|
-| Memory BW [MB/s]      | 205.97                  | 34,625.88         | 4082.74           |
-| DP MFLOP/s            | 65.69                   | (not measured)    | 8165.49           |
-| CPI                   | 0.4615                  | 2.079             | ~4.41             |
-| Vectorization [%]     | 62.25                   | (not measured)    | ~100              |
+| Metric                | SWIFT (large, best case) | triad (single core) | triad (full node) | peakflops (single core) | peakflops (full node) |
+|-----------------------|-------------------------|---------------------|-------------------|-------------------------|-----------------------|
+| Memory BW [MB/s]      | 205.97                  | 14479.33            | 26614.00          | 2468.09                 | 22115.77              |
+| DP MFLOP/s            | 65.69                   | (not measured)      | (not measured)    | 4936.19                 | 44231.53              |
+| CPI                   | 0.4615                  | 3.13                | 3.13              | 8.43                    | 0.94                  |
+| Vectorization [%]     | 62.25                   | (not measured)      | (not measured)    | ~100                    | ~100                  |
 
 ---
 
@@ -409,7 +405,7 @@ Group 1: FLOPS_DP
 
 - **Scaling:** Memory bandwidth and data volume increase with problem size, but bandwidth is still far from hardware peak.
 - **Compared to triad:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
-- **Compared to peakflops:** SWIFT achieves only ~2% of peak FLOPS, and about 5% of peakflops memory bandwidth, with much lower vectorization.
+- **Compared to peakflops:** SWIFT achieves only ~3.6% of single-core peak FLOPS, and about 0.4% of full-node peakflops MFLOPS, with much lower vectorization.
 - **Optimization Potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
 
 ---
@@ -705,12 +701,12 @@ Group: 1
 
 | Metric         | swift_mpi (best rank) | likwid-bench triad | Ratio      |
 |----------------|----------------------|--------------------|------------|
-| Memory BW      | 1515 MB/s            | 34,625.88 MB/s     | ~4.4%      |
+| Memory BW      | 1515 MB/s            | 26614.00 MB/s      | ~5.7%      |
 | Read/Write Ratio | ~1.8:1             | 3:1                | Lower      |
-| CPI            | 0.84                 | 2.08               | ~2.5x better |
+| CPI            | 0.84                 | 3.13               | ~3.7x better |
 
 - **Observation:**  
-  - SWIFT achieves only ~4.4% of the streaming memory bandwidth of triad.
+  - SWIFT achieves only ~5.7% of the streaming memory bandwidth of triad.
   - Access pattern is less streaming (lower read/write ratio).
   - CPI is better in SWIFT, but this is expected for memory-bound code.
 
@@ -720,13 +716,13 @@ Group: 1
 
 | Metric         | swift_mpi (best rank) | likwid-bench peakflops | Ratio      |
 |----------------|----------------------|------------------------|------------|
-| MFLOP/s        | ~62                  | 8165.49                | ~0.76%     |
-| Memory BW      | 1515 MB/s            | 4082.74 MB/s           | ~37%       |
-| CPI            | 0.84                 | ~4.41                  | ~5x better |
-| Vectorization  | ~22–34%              | ~100%                  | ~0.22–0.34x|
+| MFLOP/s        | ~82.7                | 4936.19                | ~1.7%      |
+| Memory BW      | 1515 MB/s            | 2468.09 MB/s           | ~61%       |
+| CPI            | 0.84                 | 8.43                   | ~10x better |
+| Vectorization  | ~67%                 | ~100%                  | ~0.67x     |
 
 - **Observation:**  
-  - SWIFT achieves less than 1% of peak FLOPS and about 37% of peakflops memory bandwidth.
+  - SWIFT achieves about 1.7% of peak FLOPS and about 61% of peakflops memory bandwidth.
   - Vectorization ratio is much lower than peakflops.
   - CPI is much better in SWIFT, but peakflops is compute-bound.
 
@@ -736,10 +732,10 @@ Group: 1
 
 | Metric                | swift_mpi (large, best rank) | triad             | peakflops         |
 |-----------------------|------------------------------|-------------------|-------------------|
-| Memory BW [MB/s]      | 1515                         | 34,625.88         | 4082.74           |
-| DP MFLOP/s            | ~44                          | (not measured)    | 8165.49           |
-| CPI                   | 0.84                         | 2.08              | ~4.41             |
-| Vectorization [%]     | ~22–34                       | (not measured)    | ~100              |
+| Memory BW [MB/s]      | 1515                         | 26614.00          | 2468.09           |
+| DP MFLOP/s            | ~82.7                        | (not measured)    | 4936.19           |
+| CPI                   | 0.84                         | 3.13              | 8.43              |
+| Vectorization [%]     | ~67                          | (not measured)    | ~100              |
 
 ---
 
@@ -747,7 +743,7 @@ Group: 1
 
 - **Scaling:** Memory bandwidth and data volume increase with problem size, but bandwidth is still far from hardware peak.
 - **Compared to triad:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
-- **Compared to peakflops:** SWIFT achieves less than 1% of peak FLOPS, and about 37% of peakflops memory bandwidth, with much lower vectorization.
+- **Compared to peakflops:** SWIFT achieves about 1.7% of peak FLOPS, and about 61% of peakflops memory bandwidth, with much lower vectorization.
 - **Optimization Potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
 
 ---
