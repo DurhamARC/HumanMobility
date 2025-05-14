@@ -13,17 +13,17 @@
 
 # Check if an argument was provided
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 [--run|--vis|--map]"
+    echo "Usage: $0 [--gen|--run|--vis|--map]"
     exit 1
 fi
 
 mode=$1
 
 case $mode in
-    --run|--vis|--map)
+    --gen|--run|--vis|--map)
         ;;
     *)
-        echo "Invalid argument. Use --run, --vis or --map"
+        echo "Invalid argument. Use --gen, --run, --vis or --map"
         exit 1
         ;;
 esac
@@ -52,6 +52,9 @@ module list
 
 # Execute the appropriate script
 case $mode in
+    --gen)
+        ./gen.sh
+        ;;
     --run)
         ./run.sh
         ;;
