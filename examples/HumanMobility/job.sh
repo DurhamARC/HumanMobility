@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --ntasks=4             # Total number of MPI tasks (cores) (max 32)
+#SBATCH --ntasks=1             # Total number of MPI tasks (cores) (max 16)
 #SBATCH --nodes=1               # Number of nodes
-#SBATCH --ntasks-per-node=4    # MPI tasks per node (max 32)
-#SBATCH --cpus-per-task=4      # CPU cores per MPI rank
+#SBATCH --ntasks-per-node=1    # MPI tasks per node (max 16)
+#SBATCH --cpus-per-task=16      # CPU cores per MPI rank
 #SBATCH --mem=120G               # Memory per node
 #SBATCH -p cosma               # COSMA5 partition
 #SBATCH -A durham               # Account
-#SBATCH -t 1-00:00:00
+#SBATCH -t 2-00:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lcgk69@durham.ac.uk
 

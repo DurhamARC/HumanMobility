@@ -404,9 +404,9 @@ Group 1: FLOPS_DP
 **Key Takeaways**
 
 - **Scaling:** Memory bandwidth and data volume increase with problem size, but bandwidth is still far from hardware peak.
-- **Compared to triad:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
-- **Compared to peakflops:** SWIFT achieves only ~3.6% of single-core peak FLOPS, and about 0.4% of full-node peakflops MFLOPS, with much lower vectorization.
-- **Optimization Potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
+- **Compared to `triad`:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
+- **Compared to `peakflops`:** SWIFT achieves only ~3.6% of single-core peak FLOPS, and about 0.4% of full-node `peakflops` MFLOPS, with much lower vectorization.
+- **Optimization potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
 
 ---
 
@@ -706,7 +706,7 @@ Group: 1
 | CPI            | 0.84                 | 3.13               | ~3.7x better |
 
 - **Observation:**  
-  - SWIFT achieves only ~5.7% of the streaming memory bandwidth of triad.
+  - SWIFT achieves only ~5.7% of the streaming memory bandwidth of `triad`.
   - Access pattern is less streaming (lower read/write ratio).
   - CPI is better in SWIFT, but this is expected for memory-bound code.
 
@@ -722,9 +722,9 @@ Group: 1
 | Vectorization  | ~67%                 | ~100%                  | ~0.67x     |
 
 - **Observation:**  
-  - SWIFT achieves about 1.7% of peak FLOPS and about 61% of peakflops memory bandwidth.
-  - Vectorization ratio is much lower than peakflops.
-  - CPI is much better in SWIFT, but peakflops is compute-bound.
+  - SWIFT achieves about 1.7% of peak FLOPS and about 61% of `peakflops` memory bandwidth.
+  - Vectorization ratio is much lower than `peakflops`.
+  - CPI is much better in SWIFT, but `peakflops` is compute-bound.
 
 ---
 
@@ -742,9 +742,9 @@ Group: 1
 **Key Takeaways**
 
 - **Scaling:** Memory bandwidth and data volume increase with problem size, but bandwidth is still far from hardware peak.
-- **Compared to triad:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
-- **Compared to peakflops:** SWIFT achieves about 1.7% of peak FLOPS, and about 61% of peakflops memory bandwidth, with much lower vectorization.
-- **Optimization Potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
+- **Compared to `triad`:** SWIFT achieves only a small fraction of the streaming bandwidth, with a more balanced (less streaming) access pattern and better CPI.
+- **Compared to `peakflops`:** SWIFT achieves about 1.7% of peak FLOPS, and about 61% of `peakflops` memory bandwidth, with much lower vectorization.
+- **Optimization potential:** There is significant headroom for improving both memory access patterns and vectorization in SWIFT.
 
 ---
 

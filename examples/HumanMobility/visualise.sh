@@ -1,16 +1,19 @@
 #!/bin/bash
 
-rm images/* # don't remove the images directory if locally
+rm images-rivers-3/* # don't remove the images directory if locally
 
-num_files=1001
-min_x=0
-max_x=20000
-min_y=0
-max_y=20000
+num_files=18
+min_x=4000
+max_x=6000
+min_y=4000
+max_y=6000
 type="gas"  # or "particles"
+river_base="river-rivers-3"
+data_base="data-rivers-3/humanMobility"
+image_base="images-rivers-3/humanMobility"
 
 # Plot the result
-python3 plot_velocity_parallel.py ${num_files} ${min_x} ${max_x} ${min_y} ${max_y} ${type} # comment this line if locally
+python3 plot_velocity_parallel.py ${num_files} ${min_x} ${max_x} ${min_y} ${max_y} ${type} ${river_base} ${data_base} ${image_base}
 # python3 generate_GIF.py ${num_files}
 
 # This command sets:

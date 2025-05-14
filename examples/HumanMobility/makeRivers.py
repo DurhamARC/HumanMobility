@@ -3,9 +3,13 @@ import h5py as h5
 import argparse as ap
 from scipy.ndimage import gaussian_filter
 from scipy.interpolate import splprep, splev
+import concurrent.futures
+import time
 
 def generate_meandering_river(box_size, num_control_points=8, river_width=60.0, randomness=0.15):
     """Generate a meandering river using control points and spline interpolation"""
+
+    print("Generating meandering river...")
     
     # Generate random control points for river centerline
     # Start from left side (west)
@@ -54,7 +58,7 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
     - Within 'distance' from banks: acceleration proportional to distance constant
     - Outside: acceleration proportional to actual distance from closest bank
     """
-    
+
     # Find distances and closest points on both banks
     left_dists = np.sqrt((x - left_bank_x)**2 + (y - left_bank_y)**2)
     right_dists = np.sqrt((x - right_bank_x)**2 + (y - right_bank_y)**2)
@@ -138,6 +142,26 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
     
     return ax, ay
 
+def compute_row(i, x, y_coords, river_segments, mass, distance):
+    ax_row = np.zeros(len(y_coords), dtype=np.float32)
+    ay_row = np.zeros(len(y_coords), dtype=np.float32)
+    for j, y in enumerate(y_coords):
+        min_dist = float('inf')
+        best_seg = None
+        for seg in river_segments:
+            seg_y = np.mean(seg["centerline_y"])
+            dist = abs(y - seg_y)
+            if dist < min_dist:
+                min_dist = dist
+                best_seg = seg
+        ax_row[j], ay_row[j] = calculate_river_acceleration(
+            x, y,
+            best_seg["left_bank_x"], best_seg["left_bank_y"],
+            best_seg["right_bank_x"], best_seg["right_bank_y"],
+            mass, distance
+        )
+    return i, ax_row, ay_row
+
 def main():
     # Parse arguments
     parser = ap.ArgumentParser()
@@ -155,18 +179,71 @@ def main():
     np.random.seed(args.seed)
     
     # Parameters
-    box_size = [args.box_size, args.box_size]  # square domain
+    max_box = min(args.box_size, 10000.0)
+    box_size = [max_box, max_box]  # restrict to [0, min(args.box_size, 10000)]
     mass = 1e4                    # "mass" of the river
     distance = 1.0                # minimal distance from river
     river_width = 200.0           # width of the river
     
     # Grid parameters
     grid_size = [args.grid_size+1, args.grid_size+1]  # square grid
-    
-    # Generate meandering river
-    x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y = \
-        generate_meandering_river(box_size, river_width=river_width)
-    
+
+    river_segments = []
+    block_size = 10000.0
+    start_time = time.time()
+    if args.box_size > block_size:
+        n_repeat_x = int(np.ceil(args.box_size / block_size))
+        n_repeat_y = int(np.ceil(args.box_size / block_size))
+        blocks = []
+        for j in range(n_repeat_y):
+            for i in range(n_repeat_x):
+                offset_x = i * block_size
+                offset_y = j * block_size
+                # Compute actual block size (may be smaller at edges)
+                bx = min(block_size, args.box_size - offset_x)
+                by = min(block_size, args.box_size - offset_y)
+                if bx > 0 and by > 0:
+                    blocks.append((offset_x, offset_y, [bx, by]))
+
+        def generate_block_river(args_tuple):
+            offset_x, offset_y, block_box_size = args_tuple
+            # Each block gets its own river
+            x_c, y_c, l_x, l_y, r_x, r_y = generate_meandering_river(block_box_size, river_width=river_width)
+            # Only keep points within the block
+            mask = (x_c >= 0) & (x_c <= block_box_size[0])
+            x_c = x_c[mask] + offset_x
+            y_c = y_c[mask] + offset_y
+            l_x = l_x[mask] + offset_x
+            l_y = l_y[mask] + offset_y
+            r_x = r_x[mask] + offset_x
+            r_y = r_y[mask] + offset_y
+            return {
+                "centerline_x": x_c,
+                "centerline_y": y_c,
+                "left_bank_x": l_x,
+                "left_bank_y": l_y,
+                "right_bank_x": r_x,
+                "right_bank_y": r_y,
+            }
+
+        print("Generating rivers in parallel...")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            river_segments = list(executor.map(generate_block_river, blocks))
+        box_size = [args.box_size, args.box_size]
+    else:
+        x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y = \
+            generate_meandering_river(box_size, river_width=river_width)
+        river_segments.append({
+            "centerline_x": x_center,
+            "centerline_y": y_center,
+            "left_bank_x": left_bank_x,
+            "left_bank_y": left_bank_y,
+            "right_bank_x": right_bank_x,
+            "right_bank_y": right_bank_y,
+        })
+    end_time = time.time()
+    print(f"River generation took {end_time - start_time:.2f} seconds.")
+
     # Create acceleration field arrays
     ax = np.zeros(grid_size, dtype=np.float32)
     ay = np.zeros(grid_size, dtype=np.float32)
@@ -177,15 +254,21 @@ def main():
     
     # Calculate acceleration field at each grid point
     print("Calculating acceleration field...")
-    for i, x in enumerate(x_coords):
-        if i % 100 == 0:  # Progress indicator
+    accel_start_time = time.time()
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        futures = []
+        for i, x in enumerate(x_coords):
+            # if i % 20 == 0:  # Progress indicator
             print(f"Processing row {i}/{grid_size[0]}")
-        for j, y in enumerate(y_coords):
-            ax[i,j], ay[i,j] = calculate_river_acceleration(
-                x, y, left_bank_x, left_bank_y, right_bank_x, right_bank_y,
-                mass, distance
-            )
-    
+            # Submit tasks to the executor
+            futures.append(executor.submit(compute_row, i, x, y_coords, river_segments, mass, distance))
+        for future in concurrent.futures.as_completed(futures):
+            i, ax_row, ay_row = future.result()
+            ax[i, :] = ax_row
+            ay[i, :] = ay_row
+    accel_end_time = time.time()
+    print(f"Acceleration field calculation took {accel_end_time - accel_start_time:.2f} seconds.")
+
     # Optional: Smooth the acceleration field
     # print("Smoothing acceleration field...")
     # ax = gaussian_filter(ax, sigma=1.0)
@@ -198,13 +281,17 @@ def main():
         f.create_dataset("AccelerationField/ax", data=ax)
         f.create_dataset("AccelerationField/ay", data=ay)
         
-        # Save river geometry for visualization
-        f.create_dataset("RiverGeometry/centerline_x", data=x_center)
-        f.create_dataset("RiverGeometry/centerline_y", data=y_center)
-        f.create_dataset("RiverGeometry/left_bank_x", data=left_bank_x)
-        f.create_dataset("RiverGeometry/left_bank_y", data=left_bank_y)
-        f.create_dataset("RiverGeometry/right_bank_x", data=right_bank_x)
-        f.create_dataset("RiverGeometry/right_bank_y", data=right_bank_y)
+        # Save river geometry for visualization as a collection
+        river_group = f.create_group("RiverGeometry")
+        for idx, seg in enumerate(river_segments):
+            grp = river_group.create_group(f"river_{idx}")
+            grp.create_dataset("centerline_x", data=seg["centerline_x"])
+            grp.create_dataset("centerline_y", data=seg["centerline_y"])
+            grp.create_dataset("left_bank_x", data=seg["left_bank_x"])
+            grp.create_dataset("left_bank_y", data=seg["left_bank_y"])
+            grp.create_dataset("right_bank_x", data=seg["right_bank_x"])
+            grp.create_dataset("right_bank_y", data=seg["right_bank_y"])
+        river_group.attrs["num_rivers"] = len(river_segments)
         
         # Save metadata
         f.create_group("Header")

@@ -41,9 +41,6 @@
  */
 struct external_potential {
 
-  /*! Position of the river (horizontal on the map) */
-  // double y[2]; // the northern and southern bank of the river
-
   /*! Mass */
   double mass;
 
@@ -52,15 +49,15 @@ struct external_potential {
   float *ay;
   double box_size[2];
   int grid_size[2];
-  
-  /*! River geometry data */
-  float *left_bank_x;   // Left bank x-coordinates
-  float *left_bank_y;   // Left bank y-coordinates
-  float *right_bank_x;  // Right bank x-coordinates
-  float *right_bank_y;  // Right bank y-coordinates
-  int bank_points;      // Number of points defining each bank
-};
 
+  /*! River geometry data for multiple rivers */
+  int num_rivers;             // Number of rivers
+  float **left_bank_x;        // [num_rivers][bank_points[i]]
+  float **left_bank_y;
+  float **right_bank_x;
+  float **right_bank_y;
+  int *bank_points;           // Number of points for each river
+};
 
 /**
  * @brief Computes the time-step due to the acceleration from river
@@ -139,14 +136,8 @@ __attribute__((always_inline)) INLINE static void external_gravity_acceleration(
                            rx,    ry,
                            &ax,   &ay);
 
-  // if (ax > 1e+10 || ay > 1e+10)
-  //   error("Acceleration is too high (human is inside river): %f %f", ax, ay);
-
   g->a_grav[0] += ax;
   g->a_grav[1] += ay;
-  // g->a_grav[2] = az;
-
-  // gravity_add_comoving_potential(g, value); // value ?
 }
 
 /**
@@ -174,82 +165,89 @@ static INLINE void geography_read_acceleration_field(
     struct swift_params* parameter_file, struct external_potential* potential) {
 #if defined(HAVE_HDF5)
 
-  /*! Acceleration field filename */
   char filename[DESCRIPTION_BUFFER_SIZE];
-  
-  /* Read acceleration field file path */
   parser_get_param_string(parameter_file, "RiverPotential:parameter_file", filename);
 
-  /* Load acceleration field data */
-
-  /* Open file */
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Unable to open file %s", filename);
 
-  /* Read grid size and box size */
-
-  /* Open group */
+  // Read grid size, box size, and mass
   hid_t group_id = H5Gopen(file_id, "Header", H5P_DEFAULT);
   if (group_id < 0) error("unable to open group Header.\n");
-
-  /* Read box size, grid size and mass */
   io_read_array_attribute(group_id, "BoxSize", DOUBLE, potential->box_size, 2);
   io_read_array_attribute(group_id, "GridSize", INT, potential->grid_size, 2);
   io_read_attribute(group_id, "Mass", DOUBLE, &potential->mass);
-
-  /* Close group */
   hid_t status = H5Gclose(group_id);
   if (status < 0) error("error closing group.");
 
-  /* Allocate and read acceleration fields */
+  // Allocate and read acceleration fields
   const int size = potential->grid_size[0] * potential->grid_size[1];
   potential->ax = (float*)malloc(size * sizeof(float));
   potential->ay = (float*)malloc(size * sizeof(float));
   printf("size: %d\n", size);
 
-  /* Open group */
   group_id = H5Gopen(file_id, "AccelerationField", H5P_DEFAULT);
   if (group_id < 0) error("unable to open group AccelerationField.\n");
-
-  /* Read the datasets */
   io_read_array_dataset(group_id, "ax", FLOAT, potential->ax, size);
   io_read_array_dataset(group_id, "ay", FLOAT, potential->ay, size);
-
-  /* Close group */
   status = H5Gclose(group_id);
   if (status < 0) error("error closing group.");
 
-  /* Open group for river geometry */
+  // Open RiverGeometry group and read number of rivers
   group_id = H5Gopen(file_id, "RiverGeometry", H5P_DEFAULT);
   if (group_id < 0) error("unable to open group RiverGeometry.\n");
 
-  /* Get size of bank arrays */
-  hid_t dataset = H5Dopen(group_id, "left_bank_x", H5P_DEFAULT);
-  if (dataset < 0) error("unable to open dataset left_bank_x.\n");
-  hid_t space = H5Dget_space(dataset);
-  hsize_t dims[1];
-  H5Sget_simple_extent_dims(space, dims, NULL);
-  potential->bank_points = dims[0];
-  H5Sclose(space);
-  H5Dclose(dataset);
+  // Read num_rivers attribute
+  int num_rivers = 1;
+  if (H5Aexists(group_id, "num_rivers") > 0) {
+    hid_t attr = H5Aopen(group_id, "num_rivers", H5P_DEFAULT);
+    H5Aread(attr, H5T_NATIVE_INT, &num_rivers);
+    H5Aclose(attr);
+  }
+  potential->num_rivers = num_rivers;
 
-  /* Allocate memory for river geometry */
-  potential->left_bank_x = (float*)malloc(potential->bank_points * sizeof(float));
-  potential->left_bank_y = (float*)malloc(potential->bank_points * sizeof(float));
-  potential->right_bank_x = (float*)malloc(potential->bank_points * sizeof(float));
-  potential->right_bank_y = (float*)malloc(potential->bank_points * sizeof(float));
+  // Allocate arrays for each river
+  potential->left_bank_x  = (float**)malloc(num_rivers * sizeof(float*));
+  potential->left_bank_y  = (float**)malloc(num_rivers * sizeof(float*));
+  potential->right_bank_x = (float**)malloc(num_rivers * sizeof(float*));
+  potential->right_bank_y = (float**)malloc(num_rivers * sizeof(float*));
+  potential->bank_points  = (int*)malloc(num_rivers * sizeof(int));
 
-  /* Read river geometry datasets */
-  io_read_array_dataset(group_id, "left_bank_x", FLOAT, potential->left_bank_x, potential->bank_points);
-  io_read_array_dataset(group_id, "left_bank_y", FLOAT, potential->left_bank_y, potential->bank_points);
-  io_read_array_dataset(group_id, "right_bank_x", FLOAT, potential->right_bank_x, potential->bank_points);
-  io_read_array_dataset(group_id, "right_bank_y", FLOAT, potential->right_bank_y, potential->bank_points);
+  // Read each river's geometry
+  for (int i = 0; i < num_rivers; i++) {
+    char river_name[32];
+    snprintf(river_name, sizeof(river_name), "river_%d", i);
+    hid_t river_group = H5Gopen(group_id, river_name, H5P_DEFAULT);
+    if (river_group < 0) error("unable to open group %s.\n", river_name);
 
-  /* Close river geometry group */
+    // Get size of bank arrays
+    hid_t dataset = H5Dopen(river_group, "left_bank_x", H5P_DEFAULT);
+    if (dataset < 0) error("unable to open dataset left_bank_x.\n");
+    hid_t space = H5Dget_space(dataset);
+    hsize_t dims[1];
+    H5Sget_simple_extent_dims(space, dims, NULL);
+    int npoints = dims[0];
+    H5Sclose(space);
+    H5Dclose(dataset);
+
+    potential->bank_points[i] = npoints;
+    potential->left_bank_x[i]  = (float*)malloc(npoints * sizeof(float));
+    potential->left_bank_y[i]  = (float*)malloc(npoints * sizeof(float));
+    potential->right_bank_x[i] = (float*)malloc(npoints * sizeof(float));
+    potential->right_bank_y[i] = (float*)malloc(npoints * sizeof(float));
+
+    io_read_array_dataset(river_group, "left_bank_x", FLOAT,  potential->left_bank_x[i],  npoints);
+    io_read_array_dataset(river_group, "left_bank_y", FLOAT,  potential->left_bank_y[i],  npoints);
+    io_read_array_dataset(river_group, "right_bank_x", FLOAT, potential->right_bank_x[i], npoints);
+    io_read_array_dataset(river_group, "right_bank_y", FLOAT, potential->right_bank_y[i], npoints);
+
+    status = H5Gclose(river_group);
+    if (status < 0) error("error closing river group.");
+  }
+
   status = H5Gclose(group_id);
   if (status < 0) error("error closing RiverGeometry group.");
 
-  /* Close file */
   status = H5Fclose(file_id);
   if (status < 0) error("error closing file.");
 
@@ -311,23 +309,25 @@ if (potential->ay != NULL) {
 
 /* Free river geometry arrays if they were allocated */
 if (potential->left_bank_x != NULL) {
+  for (int i = 0; i < potential->num_rivers; i++) {
+    if (potential->left_bank_x[i] != NULL) free(potential->left_bank_x[i]);
+    if (potential->left_bank_y[i] != NULL) free(potential->left_bank_y[i]);
+    if (potential->right_bank_x[i] != NULL) free(potential->right_bank_x[i]);
+    if (potential->right_bank_y[i] != NULL) free(potential->right_bank_y[i]);
+  }
   free(potential->left_bank_x);
-  potential->left_bank_x = NULL;
-}
-
-if (potential->left_bank_y != NULL) {
   free(potential->left_bank_y);
-  potential->left_bank_y = NULL;
-}
-
-if (potential->right_bank_x != NULL) {
   free(potential->right_bank_x);
+  free(potential->right_bank_y);
+  potential->left_bank_x = NULL;
+  potential->left_bank_y = NULL;
   potential->right_bank_x = NULL;
+  potential->right_bank_y = NULL;
 }
 
-if (potential->right_bank_y != NULL) {
-  free(potential->right_bank_y);
-  potential->right_bank_y = NULL;
+if (potential->bank_points != NULL) {
+  free(potential->bank_points);
+  potential->bank_points = NULL;
 }
 #endif
 
