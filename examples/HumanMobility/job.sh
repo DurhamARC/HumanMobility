@@ -13,17 +13,17 @@
 
 # Check if an argument was provided
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 [--run|--vis]"
+    echo "Usage: $0 [--run|--vis|--map]"
     exit 1
 fi
 
 mode=$1
 
 case $mode in
-    --run|--vis)
+    --run|--vis|--map)
         ;;
     *)
-        echo "Invalid argument. Use --run or --vis"
+        echo "Invalid argument. Use --run, --vis or --map"
         exit 1
         ;;
 esac
@@ -57,5 +57,8 @@ case $mode in
         ;;
     --vis)
         ./visualise.sh
+        ;;
+    --map)
+        ./map.sh
         ;;
 esac
