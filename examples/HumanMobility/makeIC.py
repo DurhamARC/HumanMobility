@@ -22,6 +22,7 @@
 import numpy as np
 import h5py as h5
 import write_gadget as wg
+import time
 
 
 class Humans(object):
@@ -323,7 +324,10 @@ if __name__ == "__main__":
         "boxsize": float(ARGS["boxsize"]),
     }
 
+    start_time = time.time()
     HUMANS = gen_humans(META)
+    gen_time = time.time()
+    print(f"Human data generation took {gen_time - start_time:.2f} seconds.")
 
     # For SPH gas particles (PartType0) or dark matter particles (PartType1)
     HUMANS.save_to_gadget(
@@ -331,5 +335,8 @@ if __name__ == "__main__":
         boxsize=ARGS["boxsize"], 
         type=ARGS["type"]
     )
+    end_time = time.time()
+    print(f"HDF5 writing took {end_time - gen_time:.2f} seconds.")
+    print(f"Total time: {end_time - start_time:.2f} seconds.")
     print("Initial condition generated")
 

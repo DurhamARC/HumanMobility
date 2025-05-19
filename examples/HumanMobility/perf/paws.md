@@ -271,6 +271,84 @@ Group 1: MEM
 +-----------------------------------+------------+
 ```
 
+##### 1000 x 1000 humans on 100 x 100 km for minimum, multiple rivers (1000 steps, 10 minutes):
+```
+likwid-perfctr -f -C 0 -g MEM swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
+```
+```
+--------------------------------------------------------------------------------
+Group 1: MEM
++-----------------------+---------+----------------+
+|         Event         | Counter |   HWThread 0   |
++-----------------------+---------+----------------+
+|   INSTR_RETIRED_ANY   |  FIXC0  | 16237189087458 |
+| CPU_CLK_UNHALTED_CORE |  FIXC1  | 13024552770775 |
+|  CPU_CLK_UNHALTED_REF |  FIXC2  | 10265924898034 |
+|      CAS_COUNT_RD     | MBOX0C0 |     4634215368 |
+|      CAS_COUNT_WR     | MBOX0C1 |     1900293496 |
+|      CAS_COUNT_RD     | MBOX1C0 |     3896604436 |
+|      CAS_COUNT_WR     | MBOX1C1 |     1068569638 |
+|      CAS_COUNT_RD     | MBOX2C0 |     3801181672 |
+|      CAS_COUNT_WR     | MBOX2C1 |     1139534217 |
+|      CAS_COUNT_RD     | MBOX3C0 |     3903990616 |
+|      CAS_COUNT_WR     | MBOX3C1 |     1066476734 |
++-----------------------+---------+----------------+
+
++-----------------------------------+------------+
+|               Metric              | HWThread 0 |
++-----------------------------------+------------+
+|        Runtime (RDTSC) [s]        |  3994.6320 |
+|        Runtime unhalted [s]       |  5009.5327 |
+|            Clock [MHz]            |  3298.6052 |
+|                CPI                |     0.8021 |
+|  Memory read bandwidth [MBytes/s] |   260.1250 |
+|  Memory read data volume [GBytes] |  1039.1035 |
+| Memory write bandwidth [MBytes/s] |    82.9092 |
+| Memory write data volume [GBytes] |   331.1919 |
+|    Memory bandwidth [MBytes/s]    |   343.0342 |
+|    Memory data volume [GBytes]    |  1370.2954 |
++-----------------------------------+------------+
+```
+
+##### 1000 x 1000 humans on 100 x 100 km for minimum, multiple rivers (100 steps, 10 minutes, new run `run-perf.sh`):
+```
+likwid-perfctr -f -C 0 -g MEM swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
+```
+```
+--------------------------------------------------------------------------------
+Group 1: MEM
++-----------------------+---------+----------------+
+|         Event         | Counter |   HWThread 0   |
++-----------------------+---------+----------------+
+|   INSTR_RETIRED_ANY   |  FIXC0  | 10840096634364 |
+| CPU_CLK_UNHALTED_CORE |  FIXC1  |  8686843831211 |
+|  CPU_CLK_UNHALTED_REF |  FIXC2  |  6846629378654 |
+|      CAS_COUNT_RD     | MBOX0C0 |     2484751310 |
+|      CAS_COUNT_WR     | MBOX0C1 |     1062582326 |
+|      CAS_COUNT_RD     | MBOX1C0 |     1990283397 |
+|      CAS_COUNT_WR     | MBOX1C1 |      514623483 |
+|      CAS_COUNT_RD     | MBOX2C0 |     1911186239 |
+|      CAS_COUNT_WR     | MBOX2C1 |      550733506 |
+|      CAS_COUNT_RD     | MBOX3C0 |     1991751136 |
+|      CAS_COUNT_WR     | MBOX3C1 |      513981792 |
++-----------------------+---------+----------------+
+
++-----------------------------------+------------+
+|               Metric              | HWThread 0 |
++-----------------------------------+------------+
+|        Runtime (RDTSC) [s]        |  2663.8206 |
+|        Runtime unhalted [s]       |  3341.2314 |
+|            Clock [MHz]            |  3298.6835 |
+|                CPI                |     0.8014 |
+|  Memory read bandwidth [MBytes/s] |   201.2862 |
+|  Memory read data volume [GBytes] |   536.1902 |
+| Memory write bandwidth [MBytes/s] |    63.4739 |
+| Memory write data volume [GBytes] |   169.0830 |
+|    Memory bandwidth [MBytes/s]    |   264.7600 |
+|    Memory data volume [GBytes]    |   705.2732 |
++-----------------------------------+------------+
+```
+
 #### Floating-point performance (`--enable-debug`)
 
 ##### 100 x 100 humans on 10 x 10 km for minimum(1000 steps, 10 minutes):
@@ -343,6 +421,72 @@ Group 1: FLOPS_DP
 |   Scalar [MUOPS/s]   |    11.3685 |
 |  Vectorization ratio |    62.2487 |
 +----------------------+------------+
+```
+
+##### 1000 x 1000 humans on 100 x 100 km for minimum, multiple rivers (1000 steps, 10 minutes):
+```
+likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
+```
+```
+--------------------------------------------------------------------------------
+Group 1: FLOPS_DP
++--------------------------------------+---------+----------------+
+|                 Event                | Counter |   HWThread 0   |
++--------------------------------------+---------+----------------+
+|           INSTR_RETIRED_ANY          |  FIXC0  | 16579362600938 |
+|         CPU_CLK_UNHALTED_CORE        |  FIXC1  | 13307840039017 |
+|         CPU_CLK_UNHALTED_REF         |  FIXC2  | 10488495793516 |
+| FP_COMP_OPS_EXE_SSE_FP_PACKED_DOUBLE |   PMC0  |    52287698182 |
+| FP_COMP_OPS_EXE_SSE_FP_SCALAR_DOUBLE |   PMC1  |    69433493065 |
+|       SIMD_FP_256_PACKED_DOUBLE      |   PMC2  |    82768760959 |
++--------------------------------------+---------+----------------+
+
++-------------------------+------------+
+|          Metric         | HWThread 0 |
++-------------------------+------------+
+|   Runtime (RDTSC) [s]   |  4080.0487 |
+|   Runtime unhalted [s]  |  5118.4970 |
+|       Clock [MHz]       |  3298.8265 |
+|           CPI           |     0.8027 |
+|       DP [MFLOP/s]      |   123.7936 |
+|     AVX DP [MFLOP/s]    |    81.1449 |
+|     Packed [MUOPS/s]    |    33.1017 |
+|     Scalar [MUOPS/s]    |    17.0178 |
+| Vectorization ratio [%] |    66.0455 |
++-------------------------+------------+
+```
+
+##### 1000 x 1000 humans on 100 x 100 km for minimum, multiple rivers (100 steps, 10 minutes, new run `run-perf.sh`):
+```
+likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 humanMobility.yml
+```
+```
+--------------------------------------------------------------------------------
+Group 1: FLOPS_DP
++--------------------------------------+---------+----------------+
+|                 Event                | Counter |   HWThread 0   |
++--------------------------------------+---------+----------------+
+|           INSTR_RETIRED_ANY          |  FIXC0  | 10928203210054 |
+|         CPU_CLK_UNHALTED_CORE        |  FIXC1  |  8761053789124 |
+|         CPU_CLK_UNHALTED_REF         |  FIXC2  |  6905083815370 |
+| FP_COMP_OPS_EXE_SSE_FP_PACKED_DOUBLE |   PMC0  |    28695343585 |
+| FP_COMP_OPS_EXE_SSE_FP_SCALAR_DOUBLE |   PMC1  |    37089227479 |
+|       SIMD_FP_256_PACKED_DOUBLE      |   PMC2  |    40266663232 |
++--------------------------------------+---------+----------------+
+
++-------------------------+------------+
+|          Metric         | HWThread 0 |
++-------------------------+------------+
+|   Runtime (RDTSC) [s]   |  2685.3508 |
+|   Runtime unhalted [s]  |  3369.6745 |
+|       Clock [MHz]       |  3298.7985 |
+|           CPI           |     0.8017 |
+|       DP [MFLOP/s]      |    95.1632 |
+|     AVX DP [MFLOP/s]    |    59.9797 |
+|     Packed [MUOPS/s]    |    25.6808 |
+|     Scalar [MUOPS/s]    |    13.8117 |
+| Vectorization ratio [%] |    65.0271 |
++-------------------------+------------+
 ```
 
 ##### Comparison wrt scaling and with benchmarks

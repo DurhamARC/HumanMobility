@@ -142,7 +142,7 @@ def calculate_river_acceleration(x, y, left_bank_x, left_bank_y, right_bank_x, r
     
     return ax, ay
 
-def compute_row(i, x, y_coords, river_segments, mass, distance):
+def compute_row_block(i, x, y_coords, river_segments, mass, distance):
     ax_row = np.zeros(len(y_coords), dtype=np.float32)
     ay_row = np.zeros(len(y_coords), dtype=np.float32)
     for j, y in enumerate(y_coords):
@@ -150,7 +150,8 @@ def compute_row(i, x, y_coords, river_segments, mass, distance):
         best_seg = None
         for seg in river_segments:
             seg_y = np.mean(seg["centerline_y"])
-            dist = abs(y - seg_y)
+            seg_x = np.mean(seg["centerline_x"])
+            dist = np.sqrt((x - seg_x)**2 + (y - seg_y)**2)
             if dist < min_dist:
                 min_dist = dist
                 best_seg = seg
@@ -194,41 +195,26 @@ def main():
     if args.box_size > block_size:
         n_repeat_x = int(np.ceil(args.box_size / block_size))
         n_repeat_y = int(np.ceil(args.box_size / block_size))
-        blocks = []
+
+        # Generate the base river only once in the bottom left corner
+        base_box_size = [block_size, block_size]
+        x_c, y_c, l_x, l_y, r_x, r_y = generate_meandering_river(base_box_size, river_width=river_width)
+
+        # Replicate the river along X and Y axes
         for j in range(n_repeat_y):
             for i in range(n_repeat_x):
                 offset_x = i * block_size
                 offset_y = j * block_size
-                # Compute actual block size (may be smaller at edges)
-                bx = min(block_size, args.box_size - offset_x)
-                by = min(block_size, args.box_size - offset_y)
-                if bx > 0 and by > 0:
-                    blocks.append((offset_x, offset_y, [bx, by]))
-
-        def generate_block_river(args_tuple):
-            offset_x, offset_y, block_box_size = args_tuple
-            # Each block gets its own river
-            x_c, y_c, l_x, l_y, r_x, r_y = generate_meandering_river(block_box_size, river_width=river_width)
-            # Only keep points within the block
-            mask = (x_c >= 0) & (x_c <= block_box_size[0])
-            x_c = x_c[mask] + offset_x
-            y_c = y_c[mask] + offset_y
-            l_x = l_x[mask] + offset_x
-            l_y = l_y[mask] + offset_y
-            r_x = r_x[mask] + offset_x
-            r_y = r_y[mask] + offset_y
-            return {
-                "centerline_x": x_c,
-                "centerline_y": y_c,
-                "left_bank_x": l_x,
-                "left_bank_y": l_y,
-                "right_bank_x": r_x,
-                "right_bank_y": r_y,
-            }
-
-        print("Generating rivers in parallel...")
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            river_segments = list(executor.map(generate_block_river, blocks))
+                # Only keep points within the block (should always be true for the base river)
+                mask = (x_c >= 0) & (x_c <= block_size)
+                river_segments.append({
+                    "centerline_x": x_c[mask] + offset_x,
+                    "centerline_y": y_c[mask] + offset_y,
+                    "left_bank_x": l_x[mask] + offset_x,
+                    "left_bank_y": l_y[mask] + offset_y,
+                    "right_bank_x": r_x[mask] + offset_x,
+                    "right_bank_y": r_y[mask] + offset_y,
+                })
         box_size = [args.box_size, args.box_size]
     else:
         x_center, y_center, left_bank_x, left_bank_y, right_bank_x, right_bank_y = \
@@ -244,36 +230,77 @@ def main():
     end_time = time.time()
     print(f"River generation took {end_time - start_time:.2f} seconds.")
 
-    # Create acceleration field arrays
-    ax = np.zeros(grid_size, dtype=np.float32)
-    ay = np.zeros(grid_size, dtype=np.float32)
-    
-    # Generate grid coordinates
-    x_coords = np.linspace(0, box_size[0], grid_size[0])
-    y_coords = np.linspace(0, box_size[1], grid_size[1])
-    
-    # Calculate acceleration field at each grid point
-    print("Calculating acceleration field...")
+    # Extended information output
+    print(f"Block size: {block_size} x {block_size}")
+    print(f"Grid size in blocks: {n_repeat_x} x {n_repeat_y}" if args.box_size > block_size else "Grid size in blocks: 1 x 1")
+    print(f"Full domain size: {box_size[0]} x {box_size[1]} (meters)")
+    print(f"Full grid size: {grid_size[0]} x {grid_size[1]}")
+
+    # Calculate number of blocks
+    n_repeat_x = int(np.ceil(args.box_size / block_size))
+    n_repeat_y = int(np.ceil(args.box_size / block_size))
+
+    # Grid parameters
+    grid_size = [args.grid_size+1, args.grid_size+1]  # e.g. 10001 x 10001
+
+    # Calculate block grid size (number of points per block, including overlap)
+    block_grid_size_x = (grid_size[0] - 1) // n_repeat_x + 1
+    block_grid_size_y = (grid_size[1] - 1) // n_repeat_y + 1
+    block_grid_size = [block_grid_size_x, block_grid_size_y]
+
+    # Generate grid coordinates for the block
+    x_block = np.linspace(0, block_size, block_grid_size[0])
+    y_block = np.linspace(0, block_size, block_grid_size[1])
+
+    # Create acceleration field arrays for a single block
+    ax_block = np.zeros(block_grid_size, dtype=np.float32)
+    ay_block = np.zeros(block_grid_size, dtype=np.float32)
+
+    # Calculate acceleration field for the bottom-left block
+    print("Calculating acceleration field for bottom-left block...")
     accel_start_time = time.time()
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = []
-        for i, x in enumerate(x_coords):
-            # if i % 20 == 0:  # Progress indicator
-            print(f"Processing row {i}/{grid_size[0]}")
+        for i, x in enumerate(x_block):
+            if(i % 100 == 0):
+                print(f"Processing row {i+1}/{block_grid_size[0]}")
             # Submit tasks to the executor
-            futures.append(executor.submit(compute_row, i, x, y_coords, river_segments, mass, distance))
+            futures.append(executor.submit(compute_row_block, i, x, y_block, river_segments, mass, distance))
         for future in concurrent.futures.as_completed(futures):
             i, ax_row, ay_row = future.result()
-            ax[i, :] = ax_row
-            ay[i, :] = ay_row
+            ax_block[i, :] = ax_row
+            ay_block[i, :] = ay_row
     accel_end_time = time.time()
-    print(f"Acceleration field calculation took {accel_end_time - accel_start_time:.2f} seconds.")
+    print(f"Acceleration field calculation for block took {accel_end_time - accel_start_time:.2f} seconds.")
 
-    # Optional: Smooth the acceleration field
-    # print("Smoothing acceleration field...")
-    # ax = gaussian_filter(ax, sigma=1.0)
-    # ay = gaussian_filter(ay, sigma=1.0)
-    
+    # Now assemble the full grid, avoiding duplicated edges
+    ax = np.zeros(grid_size, dtype=np.float32)
+    ay = np.zeros(grid_size, dtype=np.float32)
+
+    for i in range(n_repeat_x):
+        for j in range(n_repeat_y):
+            # Compute start and end indices for this block in the full grid
+            x_start = i * (block_grid_size_x - 1)
+            x_end = x_start + block_grid_size_x
+            y_start = j * (block_grid_size_y - 1)
+            y_end = y_start + block_grid_size_y
+
+            # For the last block, ensure we don't go out of bounds
+            if x_end > grid_size[0]:
+                x_end = grid_size[0]
+            if y_end > grid_size[1]:
+                y_end = grid_size[1]
+
+            # Compute the corresponding slice in the block grid
+            bx_start = 0
+            bx_end = x_end - x_start
+            by_start = 0
+            by_end = y_end - y_start
+
+            ax[x_start:x_end, y_start:y_end] = ax_block[bx_start:bx_end, by_start:by_end]
+            ay[x_start:x_end, y_start:y_end] = ay_block[bx_start:bx_end, by_start:by_end]
+
     # Save to HDF5 file
     print("Saving to HDF5 file...")
     with h5.File(args.file, 'w') as f:

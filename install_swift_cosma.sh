@@ -33,6 +33,9 @@ module load likwid/5.4.1
 
 # Set number of threads for make
 export MAKEFLAGS="-j$SLURM_CPUS_PER_TASK"
+export AR=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ar
+export LD=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-link
+export RANLIB=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ranlib
 
 # The main installation script for SWIFT_ABM
 
@@ -50,7 +53,7 @@ echo "#############################"
     --program-suffix=_intel2025 \
     CFLAGS="-Wno-error=gnu-folding-constant" \
     LDFLAGS= \
-    --enable-debug \
+    --enable-ipo \
     --enable-mpi \
     --enable-parallel-hdf5 \
     --with-tbbmalloc \
@@ -61,7 +64,7 @@ echo "#############################"
     --with-ext-potential=human-mobility \
     --with-hm=all
 
-		# --enable-ipo \
+		# --enable-debug \
 	    # --with-hm=random-walk
 
 
