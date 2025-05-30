@@ -15,7 +15,7 @@ TimeIntegration:
 
 # Parameters governing the snapshots
 Snapshots:
-  subdir:              data-rivers-3
+  subdir:              data-maqao
   basename:            humanMobility # Common part of the name of output files
   time_first:          0.         # Time of the first output (in internal units)
   delta_time:          1e-2 #1440        # Time difference between consecutive outputs (in internal units)
@@ -36,7 +36,7 @@ Scheduler:
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:  humans-rivers-3.hdf5     # The file to read
+  file_name:  humans-maqao.hdf5     # The file to read
   periodic:   1
 
 PhysicalConstants:
@@ -72,4 +72,4 @@ Gravity:
 RiverPotential:
 #  position:        [5010., 5090.]  # y-coordinates of the river banks (internal units)
 #  mass:     1e6  # "Mass" of the "river" (internal units)
-  parameter_file:  river-rivers-3.hdf5 # Path to acceleration field HDF5 file
+  parameter_file:  river-maqao.hdf5 # Path to acceleration field HDF5 file

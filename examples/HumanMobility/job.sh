@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --ntasks=1             # Total number of MPI tasks (cores) (max 16)
+#SBATCH --ntasks=4              # Total number of MPI tasks (cores) (max 16)
 #SBATCH --nodes=1               # Number of nodes
-#SBATCH --ntasks-per-node=1    # MPI tasks per node (max 16)
-#SBATCH --cpus-per-task=16      # CPU cores per MPI rank
-#SBATCH --mem=120G               # Memory per node
-#SBATCH -p cosma               # COSMA5 partition
+#SBATCH --ntasks-per-node=4     # MPI tasks per node (max 16)
+#SBATCH --cpus-per-task=4      # CPU cores per MPI rank
+#SBATCH --mem=64G               # Memory per node
+#SBATCH -p cosma8-shm           # COSMA5 partition
 #SBATCH -A durham               # Account
-#SBATCH -t 2-00:00:00
+#SBATCH -t 12:00:00             # Time limit hrs:min:sec
 #SBATCH --mail-type=END
 #SBATCH --mail-user=lcgk69@durham.ac.uk
 
@@ -40,7 +40,7 @@ module load gsl
 module load parmetis/4.0.3-64bit
 module load parallel_hdf5/1.14.4
 module load sundials/5.8.0_c8_single
-module load likwid/5.4.1
+module load maqao #likwid/5.4.1
 
 
 # Additional module for visualisation
@@ -56,7 +56,7 @@ case $mode in
         ./gen.sh
         ;;
     --run)
-        ./run.sh
+        ./run_maqao.sh
         ;;
     --vis)
         ./visualise.sh
