@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sbatch --job-name="hm-perf-both" \
-       --output="hm-perf-both.out" \
-       --error="hm-perf-both.err" \
-       run-perf.sh
+sbatch --job-name="hm_likwid" \
+       --output="hm_likwid.out" \
+       --error="hm_likwid.err" \
+       run_likwid.sh
