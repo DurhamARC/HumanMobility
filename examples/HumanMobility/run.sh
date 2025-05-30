@@ -36,9 +36,11 @@ envsubst < humanMobility_template.yml > ${HUMANMOBILITY}.yml
 # mpirun -np ${SLURM_NTASKS:-8} \
 #     swift_mpi_intel2025 --threads=${SLURM_CPUS_PER_TASK:-16} \
 #     -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml
-# likwid-perfctr -f -C 0 -g MEMREAD swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 100 ${HUMANMOBILITY}.yml
+# likwid-perfctr -f -C 0 -g MEMREAD swift -A -s -g -G --hm-river --hm-randomwalk --threads=${SLURM_CPUS_PER_TASK:-16} -n 100 ${HUMANMOBILITY}.yml
 likwid-perfctr -f -C 0 -g MEM swift_intel2025 -A -s -g -G --hm-river --hm-randomwalk --threads=${SLURM_CPUS_PER_TASK:-16} -n 1000 ${HUMANMOBILITY}.yml
-# likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=16 -n 1000 ${HUMANMOBILITY}.yml
+# likwid-perfctr -f -C 0 -g FLOPS_DP swift -A -s -g -G --hm-river --hm-randomwalk --threads=${SLURM_CPUS_PER_TASK:-16} -n 1000 ${HUMANMOBILITY}.yml
 # swift_intel2025 -h | grep version
-# likwid-mpirun -np 8 -t 16 -omp intel -g MEM -- swift_mpi --threads=16 -A -s -g -G --hm-river --hm-randomwalk -n 10000 ${HUMANMOBILITY}.yml
+# likwid-mpirun -np ${SLURM_NTASKS:-1} -t ${SLURM_CPUS_PER_TASK:-16} -omp intel -g MEM -- \ # FLOPS_DP
+    # swift_mpi_intel2025 --threads=${SLURM_CPUS_PER_TASK:-16} \
+    # -A -s -g -G --hm-river --hm-randomwalk -n 10000 ${HUMANMOBILITY}.yml
 # likwid-perfctr -a

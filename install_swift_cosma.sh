@@ -5,9 +5,9 @@
 #SBATCH --cpus-per-task=16        # Use all cores for parallel make
 #SBATCH --mem=64G                 # Memory for compilation
 #SBATCH -J sw-build              # Job name
-#SBATCH -o sw.out               # Output file
-#SBATCH -e sw.err               # Error file
-#SBATCH -p cosma               # COSMA5 partition
+##SBATCH -o sw.out               # Output file
+##SBATCH -e sw.err               # Error file
+#SBATCH -p cosma8-shm               # COSMA5 partition
 #SBATCH -A durham               # Account
 #SBATCH -t 0:30:00             # Increased time for compilation
 
@@ -37,6 +37,8 @@ export AR=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-a
 export LD=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-link
 export RANLIB=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ranlib
 
+module list
+
 # The main installation script for SWIFT_ABM
 
 echo "############################"
@@ -51,7 +53,7 @@ echo "#############################"
 #export CFLAGS="-fsanitize=address -g"
 ./configure --prefix=/cosma5/data/durham/dc-niko3/.local/ \
     --program-suffix=_intel2025 \
-    CFLAGS="-Wno-error=gnu-folding-constant" \
+    CFLAGS="-Wno-error=gnu-folding-constant -g" \
     LDFLAGS= \
     --enable-ipo \
     --enable-mpi \
