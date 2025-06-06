@@ -954,12 +954,13 @@ Group 1: FLOPS_DP
 
 **Memory Metrics (`MEM` group, best rank):**
 
-| Metric                        | `--enable-debug` | `--enable-ipo` | Change                |
-|-------------------------------|------------------|----------------|-----------------------|
-| Runtime (RDTSC) [s]           | 306.15           | 1025.74        | ~3.35x increase       |
-| Memory BW [MB/s]              | 1515             | 264            | ~5.7x decrease        |
-| Memory Data Volume [GB]       | 464              | 270            | ~42% decrease         |
-| CPI                           | 0.84             | 0.90           | Slightly worse        |
+| Metric                        | `--enable-debug`              | `--enable-ipo`   | Change                |
+|                               | (4 MPI ranks × 4 OMP threads) | (16 OMP threads) |                       |
+|-------------------------------|-------------------------------|------------------|-----------------------|
+| Runtime (RDTSC) [s]           | 306.15                        | 1025.74          | ~3.35x increase       |
+| Memory BW [MB/s]              | 1515                          | 264              | ~5.7x decrease        |
+| Memory Data Volume [GB]       | 464                           | 270              | ~42% decrease         |
+| CPI                           | 0.84                          | 0.90             | Slightly worse        |
 
 - **Observation:**  
   - With IPO enabled, runtime increases and memory bandwidth drops significantly compared to the debug build.
@@ -970,11 +971,12 @@ Group 1: FLOPS_DP
 
 **Floating-Point Metrics (`FLOPS_DP` group, best rank):**
 
-| Metric           | `--enable-debug` | `--enable-ipo` | Change                |
-|------------------|------------------|----------------|-----------------------|
-| DP MFLOP/s       | ~77              | ~29            | ~2.7x decrease        |
-| Vectorization [%]| ~66              | ~66            | Similar               |
-| CPI              | ~0.84            | ~0.90          | Slightly worse        |
+| Metric           | SWIFT(`--enable-debug`)       | SWIFT(`--enable-ipo`) | Change                |
+|                  | (4 MPI ranks × 4 OMP threads) | (16 OMP threads)      |                       |
+|------------------|-------------------------------|-----------------------|-----------------------|
+| DP MFLOP/s       | ~77                           | ~29                   | ~2.7x decrease        |
+| Vectorization [%]| ~66                           | ~66                   | Similar               |
+| CPI              | ~0.84                         | ~0.90                 | Slightly worse        |
 
 - **Observation:**  
   - Floating-point throughput drops with IPO enabled.
@@ -985,12 +987,13 @@ Group 1: FLOPS_DP
 
 **Comparison with Microbenchmarks:**
 
-| Metric         | SWIFT (`--enable-ipo`) | SWIFT (`--enable-debug`) | likwid-bench triad | likwid-bench peakflops |
-|----------------|-----------------------|-------------------------|--------------------|------------------------|
-| Memory BW      | 264 MB/s              | 1515 MB/s               | 26614 MB/s         | 2468 MB/s              |
-| DP MFLOP/s     | ~29                   | ~77                     | (not measured)     | 4936                   |
-| Vectorization  | ~66%                  | ~66%                    | (not measured)     | ~100%                  |
-| CPI            | 0.90                  | 0.84                    | 3.13 (triad)       | 8.43 (peakflops)       |
+| Metric         | SWIFT(`--enable-ipo`) | SWIFT(`--enable-debug`)       | likwid-bench triad | likwid-bench peakflops |
+|                | (16 OMP threads)      | (4 MPI ranks × 4 OMP threads) |                    |                        |
+|----------------|-----------------------|-------------------------------|--------------------|------------------------|
+| Memory BW      | 264 MB/s              | 1515 MB/s                     | 26614 MB/s         | 2468 MB/s              |
+| DP MFLOP/s     | ~29                   | ~77                           | (not measured)     | 4936                   |
+| Vectorization  | ~66%                  | ~66%                          | (not measured)     | ~100%                  |
+| CPI            | 0.90                  | 0.84                          | 3.13 (triad)       | 8.43 (peakflops)       |
 
 - **Observation:**  
   - Both SWIFT builds achieve only a small fraction of the hardware's peak memory bandwidth and floating-point throughput.
@@ -1005,6 +1008,54 @@ Group 1: FLOPS_DP
 - **IPO did not improve performance** for this configuration; memory and floating-point throughput are lower than with `--enable-debug`.
 - **SWIFT remains far from hardware peak** for both memory and compute, with vectorization much lower than microbenchmarks.
 - **Optimization potential remains high** for memory access patterns and vectorization in SWIFT.
+
+---
+
+### MAQAO Performance Analysis
+
+#### Runtime Comparison
+
+| Tool         | Configuration                                  | Runtime [s] | Notes                   |
+|--------------|------------------------------------------------|-------------|-------------------------|
+| **MAQAO**    | (4 MPI ranks × 4 OMP threads)                  | 294.31      | 1000 humans, 1000 steps |
+| **LIKWID**   | `--enable-debug` (4 MPI ranks × 4 OMP threads) | 306.15      | 1000 humans, 100 steps  |
+| **LIKWID**   | `--enable-ipo` (16 OMP threads)                | 1025.74     | 1000 humans, 100 steps  |
+
+#### MAQAO Analysis Results
+
+- **Total Time**: 294.31 seconds
+- **Profiled Time**: 239.35 seconds (81.3% coverage)
+- **Configuration**: 4 MPI ranks with 4 OpenMP threads each
+
+#### Key Differences in Methodology
+
+| Aspect              | LIKWID                           | MAQAO                            |
+|---------------------|----------------------------------|----------------------------------|
+| **Scope**           | Hardware counter-based profiling | Static + dynamic analysis        |
+| **Granularity**     | Thread/rank level                | Loop level                       |
+| **Memory Analysis** | Aggregate bandwidth measurements | Detailed access pattern analysis |
+| **Vectorization**   | Overall percentage               | Per-loop analysis                |
+| **Output**          | Performance counters             | Interactive HTML reports         |
+
+#### Performance Insights
+
+1. **Runtime Efficiency**
+  - **MAQAO MPI run (294s)** vs **LIKWID debug (306s)**: Similar performance
+2. **Analysis Depth**
+  - **LIKWID** provides quantitative metrics (1515 MB/s memory BW, ~77 MFLOP/s)
+  - **MAQAO** provides qualitative loop-by-loop optimization guidance
+3. **Profiling Coverage**
+  - **MAQAO** achieved 81.3% profiling coverage
+  - **LIKWID** measures specific hardware events with 100% coverage
+4. **Memory Access Patterns** - MAQAO shows various loops with different memory access patterns: 
+  - Some loops show spans of 652,539-171,205 bytes
+  - Memory access patterns vary from simple (6 loads) to complex (18 mixed loads/stores)
+
+#### Complementary Analysis
+
+The tools complement each other:
+- **LIKWID** gives you the **"what"** (quantitative performance)
+- **MAQAO** gives you the **"where and why"** (code locations and optimization opportunities)
 
 ---
 
