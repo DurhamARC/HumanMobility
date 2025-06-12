@@ -2,12 +2,12 @@
 
 #SBATCH --nodes=1                  # Request 1 node
 #SBATCH --ntasks=1                # Single task for compilation
-#SBATCH --cpus-per-task=16        # Use all cores for parallel make
+#SBATCH --cpus-per-task=32        # Use all cores for parallel make
 #SBATCH --mem=64G                 # Memory for compilation
 #SBATCH -J sw-build              # Job name
-#SBATCH -o sw_cosma.out               # Output file
-#SBATCH -e sw_cosma.err               # Error file
-#SBATCH -p cosma               # COSMA5 partition
+#SBATCH -o sw_intel2025.out               # Output file
+#SBATCH -e sw_intel2025.err               # Error file
+#SBATCH -p cosma5               # COSMA5 partition
 #SBATCH -A durham               # Account
 #SBATCH -t 0:30:00             # Increased time for compilation
 
@@ -20,7 +20,7 @@ source ~/swift-env/bin/activate
 
 module purge
 module load cosma
-module load intel_comp/2024.2.0 #intel_comp/2025.0.1
+module load intel_comp/2025.0.1 #intel_comp/2024.2.0
 module load umf compiler-rt tbb compiler mpi
 # module load openmpi/5.0.3
 module load python
@@ -34,9 +34,9 @@ module load ffmpeg
 
 # Set number of threads for make
 export MAKEFLAGS="-j$SLURM_CPUS_PER_TASK"
-# export AR=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ar
-# export LD=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-link
-# export RANLIB=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ranlib
+export AR=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ar
+export LD=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-link
+export RANLIB=/cosma/local/intel/oneAPI_2025.0.1/compiler/2025.0/bin/compiler/llvm-ranlib
 
 module list
 
@@ -98,9 +98,8 @@ echo "#############################"
 #===============================================================================
 #/configure --prefix=/cosma/home/do009/dc-niko3/.local/ \
 #export CFLAGS="-fsanitize=address -g"
-# --program-suffix=_intel2025 \
 ./configure --prefix=/cosma5/data/durham/dc-niko3/.local/ \
-    --program-suffix=_cosma \
+    --program-suffix=_intel2025 \
     CFLAGS="-Wno-error=gnu-folding-constant" \
     LDFLAGS= \
     --enable-debug \
