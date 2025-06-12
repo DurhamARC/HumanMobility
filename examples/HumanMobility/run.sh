@@ -4,8 +4,21 @@
 HUMANS=humans-rivers-3
 RIVERS=river-rivers-3
 HUMANMOBILITY=humanMobility
-DATA=data-rivers-3-3-21
-IMAGES=images-rivers-3-3-21
+
+# Automatically generate directory names based on SLURM parameters
+nodes=${SLURM_JOB_NUM_NODES:-1}
+ntasks=${SLURM_NTASKS:-1}
+cpus_per_task=${SLURM_CPUS_PER_TASK:-16}
+
+# Determine partition suffix based on SLURM partition
+partition_suffix=""
+if [[ "${SLURM_JOB_PARTITION}" == "cosma" ]]; then
+    partition_suffix="-cosma"
+fi
+
+# Generate suffix based on resources and partition
+DATA=data-rivers-${nodes}-${ntasks}-${cpus_per_task}${partition_suffix}
+IMAGES=images-rivers-${nodes}-${ntasks}-${cpus_per_task}${partition_suffix}
 
 # Create the data directory if it doesn't exist
 mkdir -p ${DATA}
@@ -14,22 +27,27 @@ mkdir -p ${DATA}
 export DATA HUMANMOBILITY HUMANS RIVERS
 envsubst < humanMobility_template.yml > ${DATA}/${HUMANMOBILITY}.yml
 
-SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_intel2025
-SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_intel2025
+# Select SWIFT binaries based on partition
+if [[ "${SLURM_JOB_PARTITION}" == "cosma" ]]; then
+    SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_cosma
+    SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_cosma
+else
+    SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_intel2025
+    SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_intel2025
+fi
 
 # Enable SWIFT's built-in logging
 export SWIFT_TASK_DUMPS=1
 export SWIFT_MPIUSE_REPORTS=1
 export SWIFT_MEMUSE_REPORTS=1
 
-# Automatic selection between serial and parallel based on SLURM parameters
-ntasks=${SLURM_NTASKS:-1}
-cpus_per_task=${SLURM_CPUS_PER_TASK:-16}
-
 echo "Auto-detecting execution mode:"
+echo "  Partition: ${SLURM_JOB_PARTITION:-cosma5}"
+echo "  SLURM_JOB_NUM_NODES: $nodes"
 echo "  SLURM_NTASKS: $ntasks"
 echo "  SLURM_CPUS_PER_TASK: $cpus_per_task"
 echo "  Output directory: ${DATA}"
+echo "  SWIFT binary: $(basename ${SWIFT})"
 
 # Change to the data directory so all output files are written there
 cd ${DATA}

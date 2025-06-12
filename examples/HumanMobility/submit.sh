@@ -67,18 +67,11 @@ name=${mode#--}  # Remove leading -- from mode
 # Calculate memory per node (estimate: 4GB per core)
 mem_per_node=$((cpus_per_task * ntasks / nodes * 4))G
 
-# Select appropriate job script based on partition
-if [ "$partition" = "cosma" ]; then
-    job_script="job_cosma.sh"
-else
-    job_script="job.sh"
-fi
-
 echo "Submitting to partition: $partition"
-echo "Using job script: $job_script"
+echo "Using unified job script: job.sh"
 echo "Resources: $nodes nodes, $ntasks tasks, $cpus_per_task cores/task"
 
-# Submit job with specified resources and partition
+# Submit job with specified resources and partition - now always use job.sh
 sbatch --job-name="hm-$name" \
        --output="hm-$name-$partition-rank%t.out" \
        --error="hm-$name-$partition-rank%t.err" \
@@ -88,4 +81,4 @@ sbatch --job-name="hm-$name" \
        --ntasks-per-node=$((ntasks / nodes)) \
        --cpus-per-task=$cpus_per_task \
        --mem=$mem_per_node \
-       $job_script $mode
+       job.sh $mode
