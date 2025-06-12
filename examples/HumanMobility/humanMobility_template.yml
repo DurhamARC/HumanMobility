@@ -15,7 +15,7 @@ TimeIntegration:
 
 # Parameters governing the snapshots
 Snapshots:
-  subdir:              ${DATA}
+  subdir:              .          # Current directory (since we cd into ${DATA})
   basename:            ${HUMANMOBILITY} # Common part of the name of output files
   time_first:          0.         # Time of the first output (in internal units)
   delta_time:          1e-2 #1440        # Time difference between consecutive outputs (in internal units)
@@ -36,7 +36,7 @@ Scheduler:
 
 # Parameters related to the initial conditions
 InitialConditions:
-  file_name:  ${HUMANS}.hdf5     # The file to read
+  file_name:  ../${HUMANS}.hdf5     # The file to read (relative to data directory)
   periodic:   1
 
 PhysicalConstants:
@@ -70,6 +70,12 @@ Gravity:
 #   # timestep_mult:             0.1  # (Optional) The dimensionless constant C in the time-step condition
 
 RiverPotential:
-#  position:        [5010., 5090.]  # y-coordinates of the river banks (internal units)
-#  mass:     1e6  # "Mass" of the "river" (internal units)
-  parameter_file:  ${RIVERS}.hdf5 # Path to acceleration field HDF5 file
+  parameter_file:  ../${RIVERS}.hdf5 # Path to acceleration field HDF5 file (relative to data directory)
+
+DomainDecomposition:
+  trigger:              0.05     # Enable load balancing analysis
+  initial_type:         memory
+  repartition_type:     timecosts
+  use_fixed_costs:      0
+  memory_reports:       1        # Enable memory balance logging
+  cpu_reports:          1        # Enable CPU balance logging

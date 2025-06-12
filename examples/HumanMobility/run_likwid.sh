@@ -1,35 +1,77 @@
 #!/bin/bash
-#SBATCH --ntasks=1             # Total number of MPI tasks (cores) (max 16)
-#SBATCH --nodes=1              # Number of nodes
-#SBATCH --ntasks-per-node=1    # MPI tasks per node (max 16)
-#SBATCH --cpus-per-task=16     # CPU cores per MPI rank
-#SBATCH --mem=120G             # Memory per node
-#SBATCH -p cosma               # COSMA5 partition
-#SBATCH -A durham              # Account
-#SBATCH -t 2-00:00:00
-#SBATCH --mail-type=END
-#SBATCH --mail-user=lcgk69@durham.ac.uk
-#SBATCH --job-name=hm-perf-both
-#SBATCH --output=hm-perf-both.out
-#SBATCH --error=hm-perf-both.err
 
-# Load required modules
-module purge
-module load cosma
-module load intel_comp/2025.0.1
-module load umf compiler-rt tbb compiler mpi
-module load python
-module load fftw/3.3.10
-module load gsl
-module load parmetis/4.0.3-64bit
-module load parallel_hdf5/1.14.4
-module load sundials/5.8.0_c8_single
-module load likwid/5.4.1
+# Basenames for this run (without extensions)
+HUMANS=humans-likwid
+RIVERS=river-likwid
+HUMANMOBILITY=humanMobility
+DATA=data-likwid
+IMAGES=images-likwid
 
-module list
+# Create the data directory if it doesn't exist
+mkdir -p ${DATA}
 
-echo "=== Running MEM benchmark ==="
-./run-mem.sh
+# Render the YAML config from template
+export DATA HUMANMOBILITY HUMANS RIVERS
+envsubst < humanMobility_template.yml > ${DATA}/${HUMANMOBILITY}.yml
 
-echo "=== Running FLOPS_DP benchmark ==="
-./run-flops-dp.sh
+SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_intel2025
+SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_intel2025
+
+# Use SLURM environment variables for configuration
+ntasks=${SLURM_NTASKS:-1}
+cpus_per_task=${SLURM_CPUS_PER_TASK:-16}
+
+echo "LIKWID Analysis Configuration:"
+echo "  MPI Tasks: $ntasks"
+echo "  OpenMP Threads per Task: $cpus_per_task"
+echo "  Output directory: ${DATA}"
+
+# Change to the data directory so all output files are written there
+cd ${DATA}
+
+# Enable SWIFT's built-in logging
+export SWIFT_TASK_DUMPS=1
+export SWIFT_MPIUSE_REPORTS=1
+export SWIFT_MEMUSE_REPORTS=1
+
+# Run LIKWID with automatic serial/parallel detection
+if [ $ntasks -eq 1 ]; then
+    echo "Running LIKWID on SERIAL SWIFT"
+    
+    echo "=== Running LIKWID MEM benchmark ==="
+    likwid-perfctr -C 0-$((cpus_per_task-1)) -g MEM \
+        ${SWIFT} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1 \
+        > likwid_mem_summary.txt 2>&1
+
+    echo "=== Running LIKWID FLOPS_DP benchmark ==="
+    likwid-perfctr -C 0-$((cpus_per_task-1)) -g FLOPS_DP \
+        ${SWIFT} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1 \
+        > likwid_flops_summary.txt 2>&1
+
+    echo "=== Running LIKWID L3 Cache benchmark ==="
+    likwid-perfctr -C 0-$((cpus_per_task-1)) -g L3 \
+        ${SWIFT} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1 \
+        > likwid_cache_summary.txt 2>&1
+else
+    echo "Running LIKWID on PARALLEL SWIFT"
+    
+    echo "=== Running LIKWID MEM benchmark (MPI) ==="
+    srun -n $ntasks -c $cpus_per_task \
+        likwid-mpirun -np $ntasks -g MEM \
+        ${SWIFT_MPI} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1 \
+        > likwid_mpi_mem_summary.txt 2>&1
+
+    echo "=== Running LIKWID FLOPS_DP benchmark (MPI) ==="
+    srun -n $ntasks -c $cpus_per_task \
+        likwid-mpirun -np $ntasks -g FLOPS_DP \
+        ${SWIFT_MPI} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1 \
+        > likwid_mpi_flops_summary.txt 2>&1
+fi
+
+echo "LIKWID analysis complete. Results in likwid_*_summary.txt files"
+echo "Check the generated summary files for detailed performance metrics"

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p cosma5               # COSMA5 partition (with AVX support)
+#SBATCH -p cosma                # COSMA partition (legacy)
 #SBATCH -A durham               # Account
 #SBATCH -t 12:00:00             # Time limit hrs:min:sec
 #SBATCH --mail-type=END
@@ -26,17 +26,17 @@ esac
 # Display current job configuration
 echo "Job Configuration:"
 echo "  Mode: $mode"
+echo "  Partition: COSMA (legacy hardware)"
 echo "  Nodes: ${SLURM_JOB_NUM_NODES:-1}"
 echo "  MPI Tasks: ${SLURM_NTASKS:-1}"
 echo "  CPUs per Task: ${SLURM_CPUS_PER_TASK:-16}"
 echo "  Memory per Node: ${SLURM_MEM_PER_NODE:-64G}"
-echo "  Partition: COSMA5 (modern hardware)"
 
-# Common module loading
+# Common module loading - use older, compatible modules for COSMA
 module purge
 module load cosma
-module load intel_comp/2025.0.1 # gnu_comp/14.1.0 intel_comp/2024.2.0
-module load umf compiler-rt tbb compiler mpi
+module load intel_comp/2024.2.0    # Use older Intel compiler for compatibility
+module load compiler-rt tbb compiler mpi
 # module load openmpi/5.0.3/
 
 # Set MPI environment variables
@@ -63,7 +63,7 @@ case $mode in
         ./map.sh
         ;;
     --run)
-        ./run.sh
+        ./run_cosma.sh  # Use COSMA-compatible run script
         ;;
     --likwid)
 		# Load likwid profiler
@@ -76,17 +76,17 @@ case $mode in
         ./run_maqao.sh
         ;;
     --aps)
-        # Load APS profiler
+        echo "Warning: Intel APS 2025 may not be compatible with legacy COSMA hardware"
         source /cosma/local/intel/oneAPI_2025.0.1/vtune/2025.0/vtune-vars.sh
         ./run_aps.sh
         ;;
     --vtune)
-        # Load VTune profiler
+        echo "Warning: Intel VTune 2025 may not be compatible with legacy COSMA hardware"
         source /cosma/local/intel/oneAPI_2025.0.1/vtune/2025.0/vtune-vars.sh
         ./run_vtune.sh
         ;;
     --advisor)
-        # Load Intel Advisor 2025.0
+        echo "Warning: Intel Advisor 2025 may not be compatible with legacy COSMA hardware"
         source /cosma/local/intel/oneAPI_2025.0.1/advisor/2025.0/advisor-vars.sh
         ./run_advisor.sh
         ;;

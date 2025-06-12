@@ -4,8 +4,8 @@
 HUMANS=humans-rivers-3
 RIVERS=river-rivers-3
 HUMANMOBILITY=humanMobility
-DATA=data-rivers-3-3-21
-IMAGES=images-rivers-3-3-21
+DATA=data-rivers-1-2-8-cosma
+IMAGES=images-rivers-1-2-8-cosma
 
 # Create the data directory if it doesn't exist
 mkdir -p ${DATA}
@@ -14,8 +14,8 @@ mkdir -p ${DATA}
 export DATA HUMANMOBILITY HUMANS RIVERS
 envsubst < humanMobility_template.yml > ${DATA}/${HUMANMOBILITY}.yml
 
-SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_intel2025
-SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_intel2025
+SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_cosma
+SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_cosma
 
 # Enable SWIFT's built-in logging
 export SWIFT_TASK_DUMPS=1

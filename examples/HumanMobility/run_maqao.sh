@@ -14,17 +14,36 @@ envsubst < humanMobility_template.yml > ${HUMANMOBILITY}.yml
 SWIFT=/cosma5/data/durham/dc-niko3/.local/bin/swift_intel2025
 SWIFT_MPI=/cosma5/data/durham/dc-niko3/.local/bin/swift_mpi_intel2025
 
-#OMP_NUM_THREADS=4 mpirun -n 4 bin/bt-mz.B.x
-    # --number-processes=${SLURM_NTASKS:-8} \
-    # --envv_OMP_NUM_THREADS=4 -- bin/bt-mz.B.x
-#maqao oneview -R1 --mpi-command="mpirun -np ${SLURM_NTASKS:-8}" \
+# Use SLURM environment variables for configuration
+ntasks=${SLURM_NTASKS:-1}
+cpus_per_task=${SLURM_CPUS_PER_TASK:-16}
 
-# Run Maqao oneview analysis on SWIFT (single node, threaded)
-# maqao oneview -R1 --output-format=all -- \
-#     ${SWIFT} -A -s -g -G --hm-river --hm-randomwalk --threads=${SLURM_CPUS_PER_TASK:-16} -n 1000 ${HUMANMOBILITY}.yml
+echo "MAQAO Analysis Configuration:"
+echo "  MPI Tasks: $ntasks"
+echo "  OpenMP Threads per Task: $cpus_per_task"
 
-# Run Maqao oneview analysis on SWIFT MPI version with correct options
-maqao oneview -R1 --output-format=all \
-    --mpi-command="mpirun -np ${SLURM_NTASKS:-4}" \
-    --envv_OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-4}" -- \
-    ${SWIFT_MPI} -A -s -g -G --hm-river --hm-randomwalk --threads=${SLURM_CPUS_PER_TASK:-4} -n 1000 ${HUMANMOBILITY}.yml
+# Enable SWIFT's built-in MPI logging for detailed analysis
+export SWIFT_TASK_DUMPS=1
+export SWIFT_MPIUSE_REPORTS=1
+export SWIFT_MEMUSE_REPORTS=1
+
+# Run MAQAO with automatic serial/parallel detection
+if [ $ntasks -eq 1 ]; then
+    echo "Running MAQAO on SERIAL SWIFT"
+    maqao oneview -R1 --output-format=all \
+        --output-dir="maqao_serial_$(date +%Y-%m-%d_%H-%M-%S)" -- \
+        ${SWIFT} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1
+else
+    echo "Running MAQAO on PARALLEL SWIFT"
+    maqao oneview -R1 --output-format=all \
+        --mpi-command="srun -n $ntasks -c $cpus_per_task" \
+        --envv_OMP_NUM_THREADS="$cpus_per_task" \
+        --envv_SWIFT_TASK_DUMPS="1" \
+        --envv_SWIFT_MPIUSE_REPORTS="1" \
+        --output-dir="maqao_mpi_$(date +%Y-%m-%d_%H-%M-%S)" -- \
+        ${SWIFT_MPI} --threads=$cpus_per_task \
+        -A -s -g -G --hm-river --hm-randomwalk -n 1000 ${HUMANMOBILITY}.yml --task-dumps=1
+fi
+
+echo "MAQAO analysis complete. Check maqao_*/ directory for results."
