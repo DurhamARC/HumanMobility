@@ -20,10 +20,10 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import argparse
 
-def parse_balance_logs():
+def parse_balance_logs(search_dir):
     """Parse rank_memory_balance.log and rank_cpu_balance.log files"""
-    memfile = "rank_memory_balance.log"
-    cpufile = "rank_cpu_balance.log"
+    memfile = os.path.join(search_dir, "rank_memory_balance.log")
+    cpufile = os.path.join(search_dir, "rank_cpu_balance.log")
     
     if not (os.path.exists(memfile) and os.path.exists(cpufile)):
         return None, None
@@ -45,15 +45,22 @@ def parse_balance_logs():
     
     return memdat, cpudat
 
-def parse_thread_info_files():
-    """Parse thread_info_MPI-step*.dat files for thread usage analysis"""
-    thread_files = glob.glob("thread_info_MPI-step*.dat")
+def parse_thread_info_files(search_dir):
+    """Parse thread_info files for both serial and MPI runs"""
+    # Try MPI files first, then serial files
+    thread_files = glob.glob(os.path.join(search_dir, "thread_info_MPI-step*.dat"))
+    is_mpi = True
     
     if not thread_files:
-        print("No thread_info_MPI files found")
+        # Try serial pattern
+        thread_files = glob.glob(os.path.join(search_dir, "thread_info-step*.dat"))
+        is_mpi = False
+    
+    if not thread_files:
+        print(f"No thread_info files found in {search_dir}")
         return None
     
-    print(f"Using thread info files: {len(thread_files)} files found")
+    print(f"Using {'MPI' if is_mpi else 'serial'} thread info files: {len(thread_files)} files found")
     
     # Parse thread timing data
     thread_data = {}  # rank -> {step -> {thread_id -> total_time}}
@@ -71,7 +78,7 @@ def parse_thread_info_files():
             if data.size == 0:
                 continue
                 
-            # First row contains metadata: rank, tic_step, toc_step, etc.
+            # Handle both single row and multi-row files
             if len(data.shape) == 1:
                 # Single row file
                 continue
@@ -86,16 +93,24 @@ def parse_thread_info_files():
             # Format: rank rid type subtype pair tic toc ci.hydro.count cj.hydro.count ci.grav.count cj.grav.count flags sid
             if len(task_data.shape) == 2:
                 for row in task_data:
-                    if len(row) >= 7:  # Ensure we have enough columns
-                        rank = int(row[0])  # First column is rank
-                        thread_id = int(row[1])  # rid = runner/thread ID
-                        tic = int(row[5])
-                        toc = int(row[6])
+                    if len(row) >= 7:
+                        if is_mpi:
+                            # MPI format: rank rid type subtype pair tic toc ...
+                            rank = int(row[0])
+                            thread_id = int(row[1])
+                            tic = int(row[5])
+                            toc = int(row[6])
+                        else:
+                            # Serial format: rid type subtype pair tic toc ...
+                            rank = 0  # Serial always uses rank 0
+                            thread_id = int(row[0])
+                            tic = int(row[4])
+                            toc = int(row[5])
                         
                         if toc > tic:  # Valid task timing
-                            task_time = toc - tic  # Time in ticks
+                            task_time = toc - tic
                             
-                            # Initialize rank data structure
+                            # Initialize data structures
                             if rank not in thread_data:
                                 thread_data[rank] = {}
                                 rank_thread_counts[rank] = 0
@@ -118,56 +133,63 @@ def parse_thread_info_files():
     
     return thread_data, rank_thread_counts
 
-def parse_dat_files():
-    """Parse memuse_report-rank*-step*.dat and mpiuse_report-rank*-step*.dat files"""
-    memfiles = glob.glob("memuse_report-rank*-step*.dat")
-    cpufiles = glob.glob("mpiuse_report-rank*-step*.dat")  # MPI communication files
+def parse_dat_files(search_dir):
+    """Parse memory and communication files for both serial and MPI runs"""
+    # Try MPI patterns first
+    memfiles = glob.glob(os.path.join(search_dir, "memuse_report-rank*-step*.dat"))
+    cpufiles = glob.glob(os.path.join(search_dir, "mpiuse_report-rank*-step*.dat"))
+    is_mpi = True
     
     if not memfiles:
-        print("No memuse_report files found")
+        # Try serial patterns
+        memfiles = glob.glob(os.path.join(search_dir, "memuse_report-step*.dat"))
+        cpufiles = []  # No MPI communication files in serial
+        is_mpi = False
+    
+    if not memfiles:
+        print(f"No memuse_report files found in {search_dir}")
         return None, None
     
-    print(f"Using .dat files: {len(memfiles)} memuse files, {len(cpufiles)} mpiuse files")
+    print(f"Using {'MPI' if is_mpi else 'serial'} .dat files: {len(memfiles)} memuse files, {len(cpufiles)} mpiuse files")
     
     # Parse memory usage files
     mem_data = []
     for memfile in sorted(memfiles):
-        # Extract rank and step from filename: memuse_report-rank0-step1.dat
-        parts = os.path.basename(memfile).replace('.dat', '').split('-')
-        rank = int(parts[1].replace('rank', ''))
-        step = int(parts[2].replace('step', ''))
+        if is_mpi:
+            # Extract rank and step from: memuse_report-rank0-step1.dat
+            parts = os.path.basename(memfile).replace('.dat', '').split('-')
+            rank = int(parts[1].replace('rank', ''))
+            step = int(parts[2].replace('step', ''))
+        else:
+            # Extract step from: memuse_report-step1.dat
+            parts = os.path.basename(memfile).replace('.dat', '').split('-')
+            rank = 0  # Serial always uses rank 0
+            step = int(parts[1].replace('step', ''))
         
         try:
-            # Load memory data - format varies, so we need to be careful
+            # Load memory data
             with open(memfile, 'r') as f:
                 lines = f.readlines()
                 
-            # Find peak memory usage from comments or data
+            # Find peak memory usage from comments
             peak_mem = 0
             for line in lines:
-                if line.startswith('# Peak memory usage'):
-                    # Extract MB value and convert to KB
-                    peak_mb = float(line.split(':')[1].strip().split()[0])
-                    peak_mem = peak_mb * 1024  # Convert MB to KB
-                    break
-            
-            if peak_mem == 0:
-                # Try to get from process memory line
-                for line in lines:
-                    if 'Memory use by process' in line:
-                        # Try to extract memory value - this is system dependent
-                        try:
-                            parts = line.split()
-                            for i, part in enumerate(parts):
-                                if 'MB' in part or 'KB' in part:
-                                    val = float(parts[i-1])
-                                    if 'MB' in part:
-                                        peak_mem = val * 1024
-                                    else:
-                                        peak_mem = val
-                                    break
-                        except:
-                            peak_mem = 1000000  # Default 1GB in KB
+                if line.startswith('# Peak memory usage') or 'Memory use by process' in line:
+                    try:
+                        # Extract memory value
+                        parts = line.split()
+                        for i, part in enumerate(parts):
+                            if 'MB' in part:
+                                val = float(parts[i-1])
+                                peak_mem = val * 1024  # Convert MB to KB
+                                break
+                            elif 'KB' in part:
+                                val = float(parts[i-1])
+                                peak_mem = val
+                                break
+                    except:
+                        pass
+                    if peak_mem > 0:
                         break
             
             if peak_mem == 0:
@@ -179,45 +201,48 @@ def parse_dat_files():
             print(f"Warning: Could not parse {memfile}: {e}")
             continue
     
-    # Parse MPI/CPU usage files (these represent communication time, not total CPU)
+    # For serial runs, create dummy CPU data since there's no MPI communication
     cpu_data = []
-    for cpufile in sorted(cpufiles):
-        # Extract rank and step from filename
-        parts = os.path.basename(cpufile).replace('.dat', '').split('-')
-        rank = int(parts[1].replace('rank', ''))
-        step = int(parts[2].replace('step', ''))
-        
-        try:
-            # Load MPI communication data
-            with open(cpufile, 'r') as f:
-                lines = f.readlines()
+    if not is_mpi and mem_data:
+        # Create minimal CPU data for serial runs
+        for step, rank, _ in mem_data:
+            cpu_data.append((step, rank, 0, 0, 1000, 0))  # Dummy values
+    elif is_mpi:
+        # Parse MPI communication files as before
+        for cpufile in sorted(cpufiles):
+            # Extract rank and step from filename
+            parts = os.path.basename(cpufile).replace('.dat', '').split('-')
+            rank = int(parts[1].replace('rank', ''))
+            step = int(parts[2].replace('step', ''))
             
-            # Sum up communication times as a proxy for CPU usage
-            total_comm_time = 0
-            for line in lines:
-                if line.startswith('#') or not line.strip():
-                    continue
-                try:
-                    # Format: stic etic dtic step rank otherrank type itype subtype isubtype activation tag size sum
-                    parts = line.split()
-                    if len(parts) >= 3:
-                        dtic = float(parts[2])  # Duration of MPI operation
-                        total_comm_time += dtic
-                except:
-                    continue
+            try:
+                # Load MPI communication data
+                with open(cpufile, 'r') as f:
+                    lines = f.readlines()
+                
+                # Sum up communication times as a proxy for CPU usage
+                total_comm_time = 0
+                for line in lines:
+                    if line.startswith('#') or not line.strip():
+                        continue
+                    try:
+                        # Format: stic etic dtic step rank otherrank type itype subtype isubtype activation tag size sum
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            dtic = float(parts[2])  # Duration of MPI operation
+                            total_comm_time += dtic
+                    except:
+                        continue
+                
+                # Convert ticks to milliseconds (approximate)
+                cpu_time_ms = total_comm_time / 1000.0  # Rough conversion
+                cpu_data.append((step, rank, 0, 0, cpu_time_ms, 0))  # user, sys, sum, deadfrac
             
-            # Convert ticks to milliseconds (approximate)
-            cpu_time_ms = total_comm_time / 1000.0  # Rough conversion
-            cpu_data.append((step, rank, 0, 0, cpu_time_ms, 0))  # user, sys, sum, deadfrac
-            
-        except Exception as e:
-            print(f"Warning: Could not parse {cpufile}: {e}")
-            continue
+            except Exception as e:
+                print(f"Warning: Could not parse {cpufile}: {e}")
+                continue
     
-    if not mem_data and not cpu_data:
-        return None, None
-    
-    # Convert to numpy arrays with same format as balance logs
+    # Convert to numpy arrays
     if mem_data:
         memdat = np.array(mem_data, dtype=[("step", int), ("rank", int), ("resident", float)])
     else:
@@ -241,6 +266,55 @@ def get_node_assignments(num_ranks):
         mid_point = num_ranks // 2
         return ["background"] * mid_point + ["zoom"] * (num_ranks - mid_point)
 
+def extract_run_info_from_directory(search_dir):
+    """Extract run information from directory name for PDF naming"""
+    import re
+    
+    dir_name = os.path.basename(search_dir)
+    
+    # Try to parse patterns like "data-rivers-N-R-C" where N=nodes, R=ranks, C=cores
+    patterns = [
+        r'data-.*-(\d+)-(\d+)-(\d+)(?:-cosma)?$',  # data-rivers-1-2-8-cosma or data-rivers-1-2-8
+        r'.*-(\d+)nodes?-(\d+)ranks?-(\d+)cores?',  # flexible naming
+        r'.*-N(\d+)-R(\d+)-C(\d+)',  # explicit N-R-C format
+        r'.*-(\d+)-(\d+)-(\d+)$',  # generic three numbers
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, dir_name)
+        if match:
+            nodes, ranks, cores = map(int, match.groups())
+            # Check if directory name contains "cosma" (legacy partition indicator)
+            if 'cosma' in dir_name and not 'cosma5' in dir_name:
+                return f"{nodes}-{ranks}-{cores}-cosma", nodes  # Return both filename and node count
+            else:
+                return f"{nodes}-{ranks}-{cores}", nodes
+    
+    # Fallback: use directory name if no pattern matches
+    return dir_name, None
+
+def detect_partition_from_directory(search_dir):
+    """Detect SLURM partition from directory name"""
+    dir_name = os.path.basename(search_dir)
+    
+    # Check directory name for partition indicators
+    if 'cosma' in dir_name.lower() and 'cosma5' not in dir_name.lower():
+        return 'cosma'
+    else:
+        # Default to cosma5 if no "cosma" suffix or if it's a different pattern
+        return 'cosma5'
+
+def format_title_with_partition(base_title, num_steps, num_ranks, num_nodes, partition):
+    """Format title with partition information"""
+    if num_nodes is not None:
+        middle_part = f"{num_steps} selected steps across {num_ranks} MPI ranks on {num_nodes} nodes"
+    else:
+        middle_part = f"{num_steps} selected steps across {num_ranks} MPI ranks"
+    
+    partition_suffix = f" on {partition}"
+    
+    return f"{base_title}\n{middle_part}{partition_suffix}"
+
 def main():
     parser = argparse.ArgumentParser(description='Performance Analysis Visualization')
     parser.add_argument('--use-balance-logs', action='store_true', 
@@ -249,7 +323,28 @@ def main():
                        help='Force use of *_report-rank*-step*.dat files')
     parser.add_argument('--use-thread-files', action='store_true',
                        help='Force use of thread_info_MPI-step*.dat files')
+    parser.add_argument('--directory', '-d', type=str, default='.',
+                       help='Directory to search for log and dat files (default: current directory)')
     args = parser.parse_args()
+    
+    # Set the working directory for file searches
+    search_dir = os.path.abspath(args.directory)
+    if not os.path.exists(search_dir):
+        print(f"Error: Directory '{search_dir}' does not exist!")
+        sys.exit(1)
+    
+    # Detect partition from directory name
+    partition = detect_partition_from_directory(search_dir)
+    print(f"Detected partition: {partition}")
+    
+    # Extract run info and node count for PDF naming
+    run_info, num_nodes = extract_run_info_from_directory(search_dir)
+    pdf_filename = f"pa_vis-{run_info}.pdf"
+    
+    print(f"Searching for performance files in: {search_dir}")
+    if num_nodes is not None:
+        print(f"Detected {num_nodes} nodes from directory name")
+    print(f"Output will be saved as: {pdf_filename}")
     
     # Color mapping
     cmap = {"zoom": "tab:red", "background": "tab:blue", "compute": "tab:green"}
@@ -259,25 +354,25 @@ def main():
     thread_data, rank_thread_counts = None, None
     
     if args.use_thread_files:
-        thread_result = parse_thread_info_files()
+        thread_result = parse_thread_info_files(search_dir)
         if thread_result:
             thread_data, rank_thread_counts = thread_result
     elif args.use_dat_files:
-        memdat, cpudat = parse_dat_files()
-        thread_result = parse_thread_info_files()
+        memdat, cpudat = parse_dat_files(search_dir)
+        thread_result = parse_thread_info_files(search_dir)
         if thread_result:
             thread_data, rank_thread_counts = thread_result
     elif args.use_balance_logs:
-        memdat, cpudat = parse_balance_logs()
+        memdat, cpudat = parse_balance_logs(search_dir)
     else:
         # Try balance logs first, then .dat files, then thread files
-        memdat, cpudat = parse_balance_logs()
+        memdat, cpudat = parse_balance_logs(search_dir)
         if memdat is None or cpudat is None:
             print("Balance logs not found, trying .dat files...")
-            memdat, cpudat = parse_dat_files()
+            memdat, cpudat = parse_dat_files(search_dir)
         
         # Always try to get thread data
-        thread_result = parse_thread_info_files()
+        thread_result = parse_thread_info_files(search_dir)
         if thread_result:
             thread_data, rank_thread_counts = thread_result
     
@@ -288,6 +383,7 @@ def main():
         print("  - memuse_report-rank*-step*.dat files")
         print("  - mpiuse_report-rank*-step*.dat files")
         print("  - thread_info_MPI-step*.dat files")
+        print("  - thread_info_step*.dat files")
         sys.exit(1)
     
     # Get unique ranks and steps
@@ -324,6 +420,17 @@ def main():
     print(f"Found {num_ranks} ranks and {num_balance_steps} balance steps")
     print(f"Ranks: {unique_ranks}")
     print(f"Balance Steps: {balance_steps}")
+
+    # Add information about thread steps
+    if num_thread_steps > 0:
+        print(f"Thread Steps: {num_thread_steps} steps found")
+        if num_thread_steps <= 10:
+            print(f"  Steps: {thread_steps}")
+        else:
+            print(f"  First 5: {thread_steps[:5]}")
+            print(f"  Last 5: {thread_steps[-5:]}")
+    else:
+        print("Thread Steps: None")
     
     # Set up node assignments
     node_assignments = get_node_assignments(num_ranks)
@@ -395,11 +502,14 @@ def main():
     # Create the two-page visualization
     print("Creating performance analysis visualization...")
     
-    with PdfPages("pa_vis.pdf") as pdffile:
+    with PdfPages(pdf_filename) as pdffile:
         
         # PAGE 1: Memory Usage and CPU Usage
         has_memory_data = memdat is not None and np.any(accumulated_memory > 0)
         has_cpu_data = cpudat is not None and np.any(accumulated_cpu > 0)
+        
+        # Initialize plot_idx before the conditional block to avoid UnboundLocalError
+        plot_idx = 0
 
         if has_memory_data or has_cpu_data:
             # Calculate number of plots needed
@@ -408,11 +518,16 @@ def main():
             # Fix: Increase figure width to accommodate both charts properly
             fig1, axs1 = plt.subplots(1, 2, figsize=(16, 6))
             
-            # Fix: Center the title properly by adjusting spacing and using figure-level suptitle
-            fig1.suptitle(f"Memory and CPU Performance Analysis\n{num_balance_steps} selected steps across {num_ranks} MPI ranks", 
-                         fontsize=14, ha='center', va='top', y=0.95)
+            # Update title formatting with partition information
+            title1 = format_title_with_partition(
+                "Memory and CPU Performance Analysis", 
+                num_balance_steps, 
+                num_ranks, 
+                num_nodes,
+                partition
+            )
             
-            plot_idx = 0
+            fig1.suptitle(title1, fontsize=14, ha='center', va='top', y=0.95)
             
             # Memory usage chart
             if has_memory_data:
@@ -471,14 +586,23 @@ def main():
                 axs1[plot_idx].set_xticks(unique_ranks)
                 plot_idx += 1
         
-        # Hide unused subplot if only one plot
-        if plot_idx == 1:
-            axs1[1].set_visible(False)
-        
-        # Fix: Adjust spacing for wider figure and better layout
-        plt.subplots_adjust(top=0.85, bottom=0.15, left=0.08, right=0.95, wspace=0.25)
-        plt.savefig(pdffile, format="pdf", bbox_inches='tight', dpi=150)
-        plt.close()
+            # Hide unused subplot if only one plot
+            if plot_idx == 1:
+                axs1[1].set_visible(False)
+            
+            # Fix: Adjust spacing for wider figure and better layout
+            plt.subplots_adjust(top=0.85, bottom=0.15, left=0.08, right=0.95, wspace=0.25)
+            plt.savefig(pdffile, format="pdf", bbox_inches='tight', dpi=150)
+            plt.close()
+
+        elif thread_data is not None and individual_thread_data:
+            # If no memory or CPU data but thread data exists, create a message for page 1
+            fig1 = plt.figure(figsize=(10, 6))
+            plt.text(0.5, 0.5, "No Memory or CPU usage data available.\nSee next page for Thread Usage data.", 
+                    ha='center', va='center', fontsize=16)
+            plt.axis('off')
+            plt.savefig(pdffile, format="pdf", bbox_inches='tight', dpi=150)
+            plt.close()
         
         # PAGE 2: Individual Thread Usage (separated by rank)
         if thread_data is not None and individual_thread_data:
@@ -503,8 +627,16 @@ def main():
                 else:
                     axs2 = [axs2] if ncols == 1 else axs2
             
-            fig2.suptitle(f"Individual Thread Usage by Rank\n{num_thread_steps} selected steps across {num_ranks} MPI ranks", 
-                         fontsize=14)
+            # For Page 2 title  
+            title2 = format_title_with_partition(
+                "Individual Thread Usage by Rank", 
+                num_thread_steps, 
+                num_ranks, 
+                num_nodes,
+                partition
+            )
+
+            fig2.suptitle(title2, fontsize=14)
             
             # Plot thread usage for each rank separately
             rank_idx = 0
@@ -672,7 +804,7 @@ def main():
         print("INDIVIDUAL THREAD USAGE: No data available")
     
     print()
-    print(f"Output saved to: pa_vis.pdf")
+    print(f"Output saved to: {pdf_filename}")
     print("="*60)
 
 if __name__ == "__main__":

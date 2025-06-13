@@ -184,3 +184,92 @@ python makeIC.py -n 300 -o humans-rivers-3.hdf5
 - Communication overhead should grow modestly with node count
 
 _Note: For the most accurate weak scaling measurements, create separate initial condition files for each problem size and ensure the work per node remains constant across all configurations._
+
+### Visualisation of performance results
+
+The performance analysis results can be visualized using the `pa_vis.py` script, which creates comprehensive PDF reports showing memory usage, CPU performance, and thread utilization across MPI ranks.
+
+#### Usage
+
+```bash
+python pa_vis.py -d <output_directory>
+```
+
+**Command-line options:**
+- `-d, --directory`: Directory containing performance log files (default: current directory)
+- `--use-balance-logs`: Force use of `rank_*_balance.log` files
+- `--use-dat-files`: Force use of `*_report-rank*-step*.dat` files  
+- `--use-thread-files`: Force use of `thread_info_MPI-step*.dat` files
+
+The script automatically detects and processes the following data sources (in order of preference):
+1. **Balance logs**: `rank_memory_balance.log` and `rank_cpu_balance.log`
+2. **Individual report files**: `memuse_report-rank*-step*.dat` and `mpiuse_report-rank*-step*.dat`
+3. **Thread timing data**: `thread_info_MPI-step*.dat` or `thread_info-step*.dat`
+
+#### Output
+
+The tool generates a two-page PDF report:
+
+**Page 1: System-level Performance**
+- Memory usage across MPI ranks (average and peak)
+- CPU time distribution and parallel efficiency
+- Load balancing metrics
+
+**Page 2: Thread-level Analysis**
+- Individual thread utilization by rank
+- Thread balance ratios within each rank
+- Thread efficiency visualization
+
+#### Example Usage
+
+For a simulation run with directory `data-rivers-1-4-4-cosma`:
+
+```bash
+python pa_vis.py -d data-rivers-1-4-4-cosma
+```
+
+**Sample Output:**
+```
+Detected partition: cosma
+Searching for performance files in: .../SWIFT/examples/HumanMobility/data-rivers-1-4-4-cosma
+Detected 1 nodes from directory name
+Output will be saved as: pa_vis-1-4-4-cosma.pdf
+Using balance log files: .../rank_memory_balance.log, .../rank_cpu_balance.log
+Using MPI thread info files: 100 files found
+Found 4 ranks and 17 balance steps
+
+============================================================
+PERFORMANCE ANALYSIS SUMMARY
+============================================================
+Simulation: 17 steps, 4 MPI ranks
+Memory & CPU steps analyzed: 17, 25, 33, 41, 49, 57, 65, 75, 90, 126, 190, 252, 370, 524, 635, 745, 934
+Thread steps analyzed: 2 to 992 (100 total steps)
+
+MEMORY USAGE:
+  Rank 0: Avg = 1196.63 GB, Max = 1242.03 GB
+  Rank 1: Avg = 1167.23 GB, Max = 1201.75 GB
+  Rank 2: Avg = 1165.93 GB, Max = 1233.33 GB
+  Rank 3: Avg = 1151.01 GB, Max = 1208.53 GB
+  Overall average: 1170.20 GB
+  Memory balance: 1.4%
+
+CPU USAGE:
+  Rank 0: Total = 81.9 seconds
+  Rank 1: Total = 81.0 seconds
+  Rank 2: Total = 81.0 seconds
+  Rank 3: Total = 79.8 seconds
+  Overall total: 323.8 seconds
+  Parallel efficiency: 98.8%
+  Load balance ratio: 0.97
+
+INDIVIDUAL THREAD USAGE:
+  Rank 0-3 Thread 0-3: 97.7 - 246.8 s (per thread)
+  Total threads active: 16
+  Overall total thread time: 2114.4 s
+  Thread balance ratio: 0.40
+
+Output saved to: pa_vis-1-4-4-cosma.pdf
+============================================================
+```
+
+The output PDF filename automatically includes the run configuration (e.g., `pa_vis-1-4-4-cosma.pdf`) for easy identification and comparison across different configurations.
