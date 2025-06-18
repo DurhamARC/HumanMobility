@@ -5,6 +5,7 @@ from scipy.ndimage import gaussian_filter
 from scipy.interpolate import splprep, splev
 import concurrent.futures
 import time
+import os
 
 def generate_meandering_river(box_size, num_control_points=8, river_width=60.0, randomness=0.15):
     """Generate a meandering river using control points and spline interpolation"""
@@ -260,13 +261,18 @@ def main():
     print("Calculating acceleration field for bottom-left block...")
     accel_start_time = time.time()
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    # Limit the number of worker processes to avoid "too many open files" error
+    # Use at most 16 processes or the number of CPU cores, whichever is smaller
+    max_workers = min(16, os.cpu_count() or 1)
+    
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for i, x in enumerate(x_block):
             if(i % 100 == 0):
                 print(f"Processing row {i+1}/{block_grid_size[0]}")
             # Submit tasks to the executor
             futures.append(executor.submit(compute_row_block, i, x, y_block, river_segments, mass, distance))
+        
         for future in concurrent.futures.as_completed(futures):
             i, ax_row, ay_row = future.result()
             ax_block[i, :] = ax_row

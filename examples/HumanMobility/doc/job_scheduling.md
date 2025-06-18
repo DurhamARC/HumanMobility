@@ -107,15 +107,16 @@ For strong scaling analysis, we keep the problem size constant (100 x 100 humans
 ```bash
 # Test MPI scaling across multiple nodes with fixed threads per rank
 ./submit.sh --run -N 2 -n 2 -c 128   # 2 nodes, 2 MPI ranks, 128 threads each
-./submit.sh --run -N 3 -n 3 -c 85    # 3 nodes, 3 MPI ranks, ~85 threads each
+./submit.sh --run -N 3 -n 3 -c 85    # 3 nodes, 3 MPI ranks, ~85 threads each (max COSMA5)
 ```
 
 **COSMA queue comparison:**
 ```bash
-# Compare with older COSMA hardware
+# Compare with older COSMA hardware (can use many more nodes)
 ./submit.sh --run -N 1 -n 1 -c 16 -p cosma   # 1 old COSMA node, 1 MPI rank, 16 threads (max)
 ./submit.sh --run -N 2 -n 2 -c 8 -p cosma    # 2 old COSMA nodes, 2 MPI ranks, 8 threads each
 ./submit.sh --run -N 4 -n 4 -c 4 -p cosma    # 4 old COSMA nodes, 4 MPI ranks, 4 threads each
+./submit.sh --run -N 8 -n 8 -c 2 -p cosma    # 8 old COSMA nodes, 8 MPI ranks, 2 threads each
 ```
 
 **Performance Analysis Integration:**
@@ -124,6 +125,7 @@ For strong scaling analysis, we keep the problem size constant (100 x 100 humans
 ./submit.sh --likwid -N 1 -n 1 -c 64    # LIKWID analysis on COSMA5
 ./submit.sh --maqao -N 1 -n 1 -c 16 -p cosma  # MAQAO analysis on COSMA
 ./submit.sh --vtune -N 2 -n 2 -c 128   # VTune analysis across 2 COSMA5 nodes
+./submit.sh --vtune -N 3 -n 3 -c 85    # VTune analysis across 3 COSMA5 nodes (maximum)
 ```
 
 #### Weak scaling
@@ -134,56 +136,93 @@ For weak scaling, we maintain constant work per computational unit by increasing
 
 **Scaling Strategy:**
 - When we double the number of nodes, we should increase the linear dimension by ~1.414 (√2)
-- For example: 100×100 humans → 141×141 humans → 200×200 humans (approximately)
+- For example: 100×100 humans → 141×141 humans → 173×173 humans (approximately)
+- **Important**: Each scaling configuration requires its own input files with appropriately sized domains and human populations
+
+**Step 1: Generate Input Files for Each Configuration**
+
+Before running weak scaling tests, generate the appropriate input files for each node count:
+
+```bash
+# For 2 nodes baseline (100x100 humans on 10x10 km)
+./submit.sh --gen -- -n 100 -b 10000
+# Creates: humans-rivers-100.hdf5, river-rivers-100.hdf5 (or with -cosma suffix)
+
+# For 3 nodes (122x122 humans on 12.2x12.2 km) - COSMA5 maximum  
+./submit.sh --gen -- -n 122 -b 12200
+# Creates: humans-rivers-122.hdf5, river-rivers-122.hdf5
+
+# For extended scaling on COSMA legacy hardware
+# For 8 nodes (200x200 humans on 20x20 km)
+./submit.sh --gen -- -n 200 -b 20000
+# Creates: humans-rivers-200.hdf5, river-rivers-200.hdf5
+
+# For 18 nodes (300x300 humans on 30x30 km)
+./submit.sh --gen -- -n 300 -b 30000
+# Creates: humans-rivers-300.hdf5, river-rivers-300.hdf5
+```
+
+**Step 2: Run Weak Scaling Tests**
+
+Now run the simulations using the corresponding input files for each configuration:
 
 **Baseline (2 nodes, 100 x 100 humans on 10 x 10 km):**
 ```bash
-./submit.sh --run -N 2 -n 2 -c 16 -p cosma  # 2 nodes, 2 ranks (1 per node), 16 threads each
+./submit.sh --run -N 2 -n 2 -c 16 -p cosma -- --num-humans 100  # Uses humans-rivers-100.hdf5
 # or on COSMA5:
-./submit.sh --run -N 2 -n 2 -c 128          # 2 nodes, 2 ranks, 128 threads each
+./submit.sh --run -N 2 -n 2 -c 128 -- --num-humans 100         # Uses humans-rivers-100.hdf5
 ```
 
-**Scale to 8 nodes (200 x 200 humans on 20 x 20 km):**
+**Scale to 3 nodes (122 x 122 humans on 12.2 x 12.2 km) - COSMA5 maximum:**
 ```bash
-./submit.sh --run -N 8 -n 8 -c 16 -p cosma  # 8 nodes, 8 ranks (1 per node), 16 threads each
+./submit.sh --run -N 3 -n 3 -c 16 -p cosma -- --num-humans 122  # Uses humans-rivers-122.hdf5
 # or on COSMA5:
-./submit.sh --run -N 8 -n 8 -c 128          # 8 nodes, 8 ranks, 128 threads each
+./submit.sh --run -N 3 -n 3 -c 64 -- --num-humans 122          # Uses humans-rivers-122.hdf5
 ```
 
-**Scale to 18 nodes (300 x 300 humans on 30 x 30 km):**
+**Extended scaling on COSMA (legacy hardware with more nodes available):**
 ```bash
-./submit.sh --run -N 18 -n 18 -c 16 -p cosma  # 18 nodes, 18 ranks (1 per node), 16 threads each
-# or on COSMA5:
-./submit.sh --run -N 18 -n 18 -c 128          # 18 nodes, 18 ranks, 128 threads each
+./submit.sh --run -N 8 -n 8 -c 16 -p cosma -- --num-humans 200   # Uses humans-rivers-200.hdf5
+./submit.sh --run -N 18 -n 18 -c 16 -p cosma -- --num-humans 300 # Uses humans-rivers-300.hdf5
 ```
 
-**Important**: When submitting these jobs, you'll need to adjust your initial conditions file to match the problem size. Use the `makeIC.py` script with the appropriate `-n` parameter:
+**Step 3: Profile at Scale**
 
-```bash
-# For 2 nodes (100x100 humans)
-python makeIC.py -n 100 -o humans-rivers-3.hdf5
+Run performance analysis with the appropriate input files:
 
-# For 8 nodes (200x200 humans)
-python makeIC.py -n 200 -o humans-rivers-3.hdf5
-
-# For 18 nodes (300x300 humans)
-python makeIC.py -n 300 -o humans-rivers-3.hdf5
-```
-
-**Profiling at Scale:**
 ```bash
 # Profile weak scaling performance at different node counts
-./submit.sh --likwid -N 2 -n 2 -c 16 -p cosma  # Baseline profiling (2 nodes)
-./submit.sh --likwid -N 8 -n 8 -c 16 -p cosma  # 8-node scaling analysis
-./submit.sh --vtune -N 18 -n 18 -c 16 -p cosma # 18-node analysis
+./submit.sh --likwid -N 2 -n 2 -c 64 -- --num-humans 100        # Baseline profiling (2 COSMA5 nodes)
+./submit.sh --likwid -N 3 -n 3 -c 64 -- --num-humans 122         # 3-node scaling analysis (max COSMA5)
+./submit.sh --vtune -N 8 -n 8 -c 16 -p cosma -- --num-humans 200 # 8-node analysis on COSMA legacy
+./submit.sh --vtune -N 18 -n 18 -c 16 -p cosma -- --num-humans 300 # 18-node analysis on COSMA legacy
 ```
+
+**Input File Naming Convention:**
+
+The [`gen.sh`](examples/HumanMobility/gen.sh) script generates files with names based on the `--num-humans` parameter:
+- `humans-rivers-{NUM_HUMANS}.hdf5` (or `humans-rivers-{NUM_HUMANS}-cosma.hdf5` on COSMA partition)
+- `river-rivers-{NUM_HUMANS}.hdf5` (or `river-rivers-{NUM_HUMANS}-cosma.hdf5` on COSMA partition)
+
+The [`run.sh`](examples/HumanMobility/run.sh) script automatically uses the correct input files when passed the `--num-humans` parameter, ensuring that:
+- 2-node runs use the 100×100 human configuration
+- 3-node runs use the 122×122 human configuration  
+- 8-node runs use the 200×200 human configuration
+- 18-node runs use the 300×300 human configuration
 
 **Expected Results:**
 - Execution time should remain approximately constant across all configurations
-- Memory usage per node should remain consistent
+- Memory usage per node should remain consistent (proportional to local problem size)
 - Communication overhead should grow modestly with node count
+- Each configuration maintains the same work per computational unit
 
-_Note: For the most accurate weak scaling measurements, create separate initial condition files for each problem size and ensure the work per node remains constant across all configurations._
+**Key Points for Weak Scaling:**
+1. **Generate all input files first** before running scaling tests
+2. **Use `--num-humans` parameter** to specify which input files to use
+3. **Ensure domain size scales with human count** (maintain constant density)
+4. **Verify file naming consistency** across partitions (COSMA vs COSMA5)
+
+_Note: COSMA5 is limited to 3 nodes maximum, so extended weak scaling studies should use the legacy COSMA partition which has ~160 nodes available. The input file generation step ensures that each node configuration has appropriately sized problems while maintaining constant work density._
 
 ### Visualisation of performance results
 

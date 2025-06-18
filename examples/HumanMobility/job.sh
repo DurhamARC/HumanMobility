@@ -6,12 +6,13 @@
 # Note: SLURM partition and other parameters are passed from submit.sh
 
 # Check if an argument was provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 [--gen|--vis|--map|--run|--likwid|--maqao|--aps|--vtune|--advisor|--inspector|--scorep]"
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 [--gen|--vis|--map|--run|--likwid|--maqao|--aps|--vtune|--advisor|--inspector|--scorep] [mode_specific_params]"
     exit 1
 fi
 
 mode=$1
+shift  # Remove mode from arguments
 
 case $mode in
     --gen|--vis|--map|--run|--likwid|--maqao|--aps|--vtune|--advisor|--inspector|--scorep)
@@ -21,6 +22,9 @@ case $mode in
         exit 1
         ;;
 esac
+
+# Store remaining arguments as mode-specific parameters
+mode_params="$*"
 
 # Detect partition and set hardware description
 if [[ "${SLURM_JOB_PARTITION}" == "cosma" ]]; then
@@ -40,11 +44,35 @@ echo "  MPI Tasks: ${SLURM_NTASKS:-1}"
 echo "  CPUs per Task: ${SLURM_CPUS_PER_TASK:-16}"
 echo "  Memory per Node: ${SLURM_MEM_PER_NODE:-64G}"
 
+# Show mode-specific parameters if provided
+if [ -n "$mode_params" ]; then
+    case $mode in
+        --gen)
+            echo "  Generation Parameters: $mode_params"
+            ;;
+        --vis)
+            echo "  Visualization Parameters: $mode_params"
+            ;;
+        --map)
+            echo "  Map Parameters: $mode_params"
+            ;;
+        --run)
+            echo "  Run Parameters: $mode_params"
+            ;;
+        --likwid|--maqao|--aps|--vtune|--advisor|--inspector|--scorep)
+            echo "  Performance Analysis Parameters: $mode_params"
+            ;;
+    esac
+fi
+
 # Common module loading
 module purge
 module load cosma
 module load $intel_comp_version
-module load umf compiler-rt tbb compiler mpi
+if [[ "$intel_comp_version" == "intel_comp/2025.0.1" ]]; then
+    module load umf
+fi
+module load compiler-rt tbb compiler mpi
 # module load openmpi/5.0.3/
 
 # Set MPI environment variables
@@ -61,17 +89,21 @@ module load sundials/5.8.0_c8_single
 # Load analysis-specific modules and execute the appropriate script
 case $mode in
     --gen)
-        ./gen.sh
+        echo "Running generation with parameters: $mode_params"
+        ./gen.sh $mode_params
         ;;
     --vis)
         module load ffmpeg
-        ./visualise.sh
+        echo "Running visualization with parameters: $mode_params"
+        ./vis.sh $mode_params
         ;;
     --map)
-        ./map.sh
+        echo "Running map generation with parameters: $mode_params"
+        ./map.sh $mode_params
         ;;
     --run)
-        ./run.sh
+        echo "Running simulation with parameters: $mode_params"
+        ./run.sh $mode_params
         ;;
     --likwid)
         # Load likwid profiler
