@@ -1,4 +1,4 @@
-## A SLURM job scheduling suite
+## SLURM job scheduling suite
 
 ### Scripts
 
