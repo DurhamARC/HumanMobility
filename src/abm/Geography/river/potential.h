@@ -181,10 +181,10 @@ static INLINE void geography_read_acceleration_field(
   if (status < 0) error("error closing group.");
 
   // Allocate and read acceleration fields
-  const int size = potential->grid_size[0] * potential->grid_size[1];
+  const long long size = potential->grid_size[0] * potential->grid_size[1];
   potential->ax = (float*)malloc(size * sizeof(float));
   potential->ay = (float*)malloc(size * sizeof(float));
-  printf("size: %d\n", size);
+  printf("acceleration grid size: %lld\n", size);
 
   group_id = H5Gopen(file_id, "AccelerationField", H5P_DEFAULT);
   if (group_id < 0) error("unable to open group AccelerationField.\n");
