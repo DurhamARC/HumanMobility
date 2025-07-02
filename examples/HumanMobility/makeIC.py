@@ -22,6 +22,7 @@
 import numpy as np
 import h5py as h5
 import write_gadget as wg
+import time
 
 
 class Humans(object):
@@ -58,6 +59,7 @@ class Humans(object):
         v_x = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
         v_y = (np.random.rand(self.nhumans)-0.5)*1000 #np.zeros(self.nhumans) #
         v_z = np.zeros(self.nhumans)
+        # print("Velocity means:", v_x.mean(), v_y.mean(), v_z.mean())
 
         self.velocities = np.array([v_x, v_y, v_z]).T
 
@@ -82,21 +84,43 @@ class Humans(object):
 
         return self.ids
 
-    def save_to_gadget(self, filename, boxsize=10000):
+    def save_to_gadget(self, filename, boxsize=10000, type="particles"):
         """
         Save the human data to a GADGET .hdf5 file.
 
         Uses the internal options, but you must specify a filename.
+    
+        Parameters:
+            filename (str): The output HDF5 filename
+            boxsize (float): Size of the simulation box
+            type (str): Type of particles to write - either "gas" or "particles"
         """
+        # Validate particle type
+        if type not in ["gas", "particles"]:
+            raise ValueError('type must be either "gas" or "particles"')
+            
+        # Map particle type to index
+        type_index = 0 if type == "gas" else 1
+        
+        # Create arrays with the correct particle type index
+        np_total = np.zeros(6, dtype=int)
+        np_total[type_index] = self.nhumans
+        
+        mass_table = np.zeros(6)
+        mass_table[type_index] = self.humanmass
+
+        # type(boxsize)
+        print("boxsize:", float(boxsize))
+
         with h5.File(filename, "w") as handle:
             wg.write_header(
                 handle,
-                boxsize=[boxsize, boxsize],
+                boxsize=[float(boxsize), float(boxsize)],
                 flag_entropy=0,
-                np_total=np.array([0, self.nhumans, 0, 0, 0, 0]),
+                np_total=np_total,
                 np_total_hw=np.array([0, 0, 0, 0, 0, 0]),
                 other={
-                    "MassTable": np.array([0, self.humanmass, 0, 0, 0, 0]),
+                    "MassTable": mass_table,
                     "Time": 0,
                     "Dimension": 2,
                     "Flag_Entropy_ICs": 0,
@@ -111,7 +135,7 @@ class Humans(object):
 
             wg.write_block(
                 handle,
-                1,  # gas, # particles, dark matter
+                type_index,  # gas, dark matter particles
                 self.positions,
                 self.velocities,
                 self.ids,
@@ -129,19 +153,20 @@ def gen_humans_grid(meta):
     Generates humans on a grid and returns a filled Humans object.
     """
     humans = Humans(meta)
-    range = (0, meta["boxsize"])
-    centre_of_ring = [meta["boxsize"] / 2.0] * 3
+    positions = (0, meta["boxsize"]) # -0.5*meta["boxsize"]
+    # centre_of_ring = [meta["boxsize"] * 0.0] * 3
 
     # Because we are using a uniform grid we actually use the same x and y
-    # range for the initial human setup.
-    step = (range[1] - range[0]) / meta["nhumans"]
+    # positions for the initial human setup.
+    width = positions[1] - positions[0]
+    step = width / meta["nhumans"]
 
-    x_values = np.arange(0, range[1] - range[0], step)
+    x_values = np.arange(0, width, step, dtype=float) # -0.5*width
 
     # These are 2d arrays which isn't actually that helpful.
     x, y = np.meshgrid(x_values, x_values)
-    x = x.flatten() + centre_of_ring[0] - (range[1] - range[0]) / 2 + np.random.rand(humans.nhumans) * 0.001
-    y = y.flatten() + centre_of_ring[1] - (range[1] - range[0]) / 2 + np.random.rand(humans.nhumans) * 0.001
+    x = x.flatten() + np.random.rand(humans.nhumans) * 5
+    y = y.flatten() + np.random.rand(humans.nhumans) * 5
     z = np.zeros(humans.nhumans)
     # z = np.zeros_like(x) + meta["boxsize"] / 2
 
@@ -257,6 +282,20 @@ if __name__ == "__main__":
         default=10000,
     )
 
+    PARSER.add_argument(
+        "-t",
+        "--type",
+        help="""
+            Type of particles to use - either 'gas' or 'particles'.
+            'gas' will save humans as SPH particles (PartType0),
+            'particles' will save them as dark matter particles (PartType1).
+            Default: gas
+            """,
+        required=False,
+        choices=['gas', 'particles'],
+        default='gas',
+    )
+
     ### --- ### --- Argument Parsing --- ### --- ###
 
     ARGS = vars(PARSER.parse_args())
@@ -285,104 +324,19 @@ if __name__ == "__main__":
         "boxsize": float(ARGS["boxsize"]),
     }
 
+    start_time = time.time()
     HUMANS = gen_humans(META)
+    gen_time = time.time()
+    print(f"Human data generation took {gen_time - start_time:.2f} seconds.")
 
-    HUMANS.save_to_gadget(filename=ARGS["filename"], boxsize=ARGS["boxsize"])
-
+    # For SPH gas particles (PartType0) or dark matter particles (PartType1)
+    HUMANS.save_to_gadget(
+        filename=ARGS["filename"], 
+        boxsize=ARGS["boxsize"], 
+        type=ARGS["type"]
+    )
+    end_time = time.time()
+    print(f"HDF5 writing took {end_time - gen_time:.2f} seconds.")
+    print(f"Total time: {end_time - start_time:.2f} seconds.")
     print("Initial condition generated")
 
-
-#################################################
-
-# # Generates a SWIFT IC file with ...
-
-# # Parameters
-# periodic = 0  # 1 For periodic box
-# boxSize = 10  # 1 km
-# rho = 200  # Population density in code units ?
-# T = 1  # Initial intensity of human motion (how many people are moving in a box or percentage?)
-# gamma = 5.0 / 3.0  # Gas adiabatic index
-# fileName = "mobilityBox.hdf5"
-# # ---------------------------------------------------
-
-# # defines some constants
-# # need to be changed in plotTemperature.py too
-# h_frac = 0.76
-# mu = 4.0 / (1.0 + 3.0 * h_frac)
-
-# m_h_cgs = 1.67e-24
-# k_b_cgs = 1.38e-16
-
-# # defines units
-# unit_length = 1  # 1m
-# unit_mass = 1  # a unit mass of 1 particle-human
-# unit_time = 1  # 1 s ?
-
-# # Read id, position and h from glass
-# glass = h5.File("humans.hdf5", "r")
-# ids = glass["/PartType0/ParticleIDs"][:]
-# pos = glass["/PartType0/Coordinates"][:, :] * boxSize
-# h = glass["/PartType0/SmoothingLength"][:] * boxSize
-
-# # Compute basic properties
-
-# # need to define `pos`
-
-# numHum = np.size(pos) // 2
-# mass = boxSize ** 2 * rho # number of humans in a unit of territory
-# internalEnergy = k_b_cgs * T * mu / ((gamma - 1.0) * m_h_cgs)
-# internalEnergy *= (unit_time / unit_length) ** 2
-
-# # File
-# f = h5.File(fileName, "w")
-
-# # Header
-# grp = f.create_group("/Header")
-# grp.attrs["BoxSize"] = boxSize
-# grp.attrs["NumHum_Total"] = [numHum, 0, 0, 0, 0, 0]
-# grp.attrs["NumHum_Total_HighWord"] = [0, 0, 0, 0, 0, 0]
-# grp.attrs["NumHum_ThisFile"] = [numHum, 0, 0, 0, 0, 0]
-# grp.attrs["Time"] = 0.0
-# grp.attrs["NumFilesPerSnapshot"] = 1
-# grp.attrs["MassTable"] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# # grp.attrs["Flag_Entropy_ICs"] = 0
-
-# # Runtime parameters
-# grp = f.create_group("/RuntimePars")
-# grp.attrs["PeriodicBoundariesOn"] = periodic
-
-# # Units
-# grp = f.create_group("/Units")
-# grp.attrs["Unit length in cgs (U_L)"] = unit_length
-# grp.attrs["Unit mass in cgs (U_M)"] = unit_mass
-# grp.attrs["Unit time in cgs (U_t)"] = unit_time
-# grp.attrs["Unit current in cgs (U_I)"] = 1.0
-# grp.attrs["Unit temperature in cgs (U_T)"] = 1.0
-
-# # Particle group
-# grp = f.create_group("/PartType0") # humans
-
-# v = np.zeros((numHum, 2))
-# ds = grp.create_dataset("Velocities", (numHum, 2), "f")
-# ds[()] = v
-
-# m = np.full((numHum, 1), mass)
-# ds = grp.create_dataset("Masses", (numHum, 1), "f")
-# ds[()] = m
-
-# h = np.reshape(h, (numHum, 1))
-# ds = grp.create_dataset("SmoothingLength", (numHum, 1), "f")
-# ds[()] = h
-
-# u = np.full((numHum, 1), internalEnergy)
-# ds = grp.create_dataset("InternalEnergy", (numHum, 1), "f")
-# ds[()] = u
-
-# ids = np.reshape(ids, (numHum, 1))
-# ds = grp.create_dataset("ParticleIDs", (numHum, 1), "L")
-# ds[()] = ids
-
-# ds = grp.create_dataset("Coordinates", (numHum, 2), "d")
-# ds[()] = pos
-
-# f.close()

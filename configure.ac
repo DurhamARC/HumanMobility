@@ -2191,7 +2191,7 @@ fi
 # HM case.
 AC_ARG_WITH([hm],
    [AS_HELP_STRING([--with-hm=<case>],
-      [Human mobility scenario @<:@none, random-walk, river default: none@:>@]
+      [Human mobility scenario @<:@none, all, random-walk, river default: none@:>@]
    )],
    [with_hm="$withval"],
    [with_hm="none"]
@@ -2201,18 +2201,17 @@ case "$with_hm" in
    none)
       AC_DEFINE([HM_CASE_NONE], [1], [No HM case])
    ;;
+   "all")
+#      AC_DEFINE([HAVE_HM_ALL], 1, [Have all Human Mobility cases])
+      AC_DEFINE([HM_CASE_RIVER], 1, [HM case River])
+      AC_DEFINE([HM_CASE_RANDOMWALK], 1, [HM case Random Walk])
+   ;;
    random-walk)
       AC_DEFINE([HM_CASE_RANDOMWALK], [1], [HM case Random Walk])
    ;;
    river)
       AC_DEFINE([HM_CASE_RIVER], [1], [HM case River])
    ;;
-   # river)
-   #    AC_DEFINE([EXTERNAL_POTENTIAL_RIVER], [1], [River obstactle.])
-   # ;;
-   # new-case)
-   #    AC_DEFINE([HM_CASE_NEWSCENARIO], [1], [HM case New Scenario]) 
-   # ;;
    *)
       AC_MSG_ERROR([Unknown HM case: $with_hm])
    ;;

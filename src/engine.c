@@ -134,7 +134,8 @@ const char *engine_policy_names[] = {"none",
                                      "line of sight",
                                      "sink",
                                      "rt",
-                                     "power spectra"};
+                                     "power spectra",
+                                     "abm"};
 
 const int engine_default_snapshot_subsample[swift_type_count] = {0};
 
@@ -3710,7 +3711,13 @@ void engine_recompute_displacement_constraint(struct engine *e) {
  * @param restart Was this a run that was restarted from check-point files?
  */
 void engine_clean(struct engine *e, const int fof, const int restart) {
-  /* Start by telling the runners to stop. */
+#ifdef EXTERNAL_POTENTIAL_ABM
+  printf("Cleaning up engine...\n");
+  // const int with_abm = e->policy & engine_policy_abm;
+  printf("Cleaning up the external potential\n");
+  potential_cleanup_backend((struct external_potential*)e->external_potential);
+#endif
+/* Start by telling the runners to stop. */
   e->step_props = engine_step_prop_done;
   swift_barrier_wait(&e->run_barrier);
 

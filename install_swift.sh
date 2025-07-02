@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Adapt the following lines to your system
-LOCAL_LIBRARY_PATH=/home/dmitry/local/lib
+# LOCAL_LIBRARY_PATH=/home/dmitry/local/lib
 METIS_PATH=/usr/lib/x86_64-linux-gnu
 PARMETIS_PATH=/usr/lib/x86_64-linux-gnu
 
@@ -15,8 +15,8 @@ make clean
 echo "#############################"
 echo "# Running './configure' ... #"
 echo "#############################"
-./configure CC=gcc \
-	    LDFLAGS=-L${LOCAL_LIBRARY_PATH} \
+# export CFLAGS="-g -pg" #-fsanitize=address 
+./configure CC=gcc CFLAGS="-g -pg" LDFLAGS="-pg -lm" \
 	    --enable-mpi \
 	    --enable-parallel-hdf5 \
 	    --with-metis=${METIS_PATH} \
@@ -25,7 +25,11 @@ echo "#############################"
 	    --with-hydro-dimension=2 \
 		--with-abm=human-mobility \
 		--with-ext-potential=human-mobility \
-	    --with-hm=river
+	    --with-hm=all
+
+	    # LDFLAGS="-pg -L${LOCAL_LIBRARY_PATH}" \
+	    # --with-hm=random-walk
+
 
 echo "########################################"
 echo "# Running 'make -j\$(nproc --all)' ... #"

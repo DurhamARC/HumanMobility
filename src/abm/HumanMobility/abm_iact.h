@@ -324,6 +324,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float visc_acc_term =
       0.5f * visc * (wi_dr * f_ij + wj_dr * f_ji) * r_inv;
 
+#ifdef HM_CASE_RANDOMWALK
+  // Seed the random number generator with the current time
+  srand(time(NULL));
+  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
+  _kick_random_walk(pj, dx, abm_max_rand, abm_div_rand);
+#else
   /* SPH acceleration term */
   const float sph_acc_term =
       (P_over_rho2_i * wi_dr + P_over_rho2_j * wj_dr) * r_inv;
@@ -335,12 +341,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term + adapt_soft_acc_term;
 
-#ifdef HM_CASE_RANDOMWALK
-  // Seed the random number generator with the current time
-  srand(time(NULL));
-  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
-  _kick_random_walk(pj, dx, abm_max_rand, abm_div_rand);
-#else
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];
@@ -413,7 +413,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float rhoi = pi->rho;
   const float rhoj = pj->rho;
   const float pressurei = pi->force.pressure;
-  const float pressurej = pj->force.pressure;
 
   /* Get the kernel for hi. */
   const float hi_inv = 1.0f / hi;
@@ -437,7 +436,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Compute gradient terms */
   const float P_over_rho2_i = pressurei / (rhoi * rhoi) * f_ij;
-  const float P_over_rho2_j = pressurej / (rhoj * rhoj) * f_ji;
 
   /* Compute dv dot r. */
   const float dvdr = (pi->v[0] - pj->v[0]) * dx[0] +
@@ -466,6 +464,14 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float visc_acc_term =
       0.5f * visc * (wi_dr * f_ij + wj_dr * f_ji) * r_inv;
 
+#ifdef HM_CASE_RANDOMWALK
+  // Seed the random number generator with the current time
+  srand(time(NULL));
+  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
+#else
+  const float pressurej = pj->force.pressure;
+  const float P_over_rho2_j = pressurej / (rhoj * rhoj) * f_ji;
+
   /* SPH acceleration term */
   const float sph_acc_term =
       (P_over_rho2_i * wi_dr + P_over_rho2_j * wj_dr) * r_inv;
@@ -477,11 +483,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term + adapt_soft_acc_term;
 
-#ifdef HM_CASE_RANDOMWALK
-  // Seed the random number generator with the current time
-  srand(time(NULL));
-  _kick_random_walk(pi, dx, abm_max_rand, abm_div_rand);
-#else
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];

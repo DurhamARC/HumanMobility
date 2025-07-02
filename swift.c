@@ -196,6 +196,8 @@ int main(int argc, char *argv[]) {
   int with_eagle = 0;
   int with_gear = 0;
   int with_agora = 0;
+  int with_hm_randomwalk = 0;
+  int with_hm_river = 0;
   int with_line_of_sight = 0;
   int with_rt = 0;
   int with_power = 0;
@@ -299,6 +301,16 @@ int main(int argc, char *argv[]) {
           "Run with all the options needed for the AGORA model. This is "
           "equivalent to --hydro --limiter --sync --self-gravity --stars "
           "--star-formation --cooling --feedback.",
+          NULL, 0, 0),
+      OPT_BOOLEAN(
+          0, "hm-randomwalk", &with_hm_randomwalk,
+          "Run with all the options needed for the random walk model. This is "
+          "equivalent to --hydro --abm.",
+          NULL, 0, 0),
+      OPT_BOOLEAN(
+          0, "hm-river", &with_hm_river,
+          "Run with all the options needed for the river model. This is "
+          "equivalent to --hydro --abm.",
           NULL, 0, 0),
 
       OPT_GROUP("  Control options:\n"),
@@ -412,6 +424,23 @@ int main(int argc, char *argv[]) {
     with_star_formation = 1;
     with_cooling = 1;
     with_feedback = 1;
+  }
+  if (with_hm_randomwalk) {
+#ifndef HM_CASE_RANDOMWALK
+    error("SWIFT was compiled without random walk case support. Recompile with --with-hm=random-walk or --with-hm=all"); 
+#endif
+    with_hydro = 1;
+    with_abm = 1;
+    with_self_gravity = 1; // Need this for random walk potential?
+  }
+  if (with_hm_river) {
+#ifndef HM_CASE_RIVER
+    error("SWIFT was compiled without river case support. Recompile with --with-hm=river or --with-hm=all");
+#endif
+    with_hydro = 1;
+    with_abm = 1;
+    with_external_gravity = 1;  // Need this for river potential
+    // with_self_gravity = 1;
   }
 
   /* Deal with thread numbers */
@@ -1547,6 +1576,7 @@ int main(int argc, char *argv[]) {
     if (with_sinks) engine_policies |= engine_policy_sinks;
     if (with_rt) engine_policies |= engine_policy_rt;
     if (with_power) engine_policies |= engine_policy_power_spectra;
+    if (with_abm) engine_policies |= engine_policy_abm;
 
     /* Initialize the engine with the space and policies. */
     engine_init(&e, &s, params, output_options, N_total[swift_type_gas],
